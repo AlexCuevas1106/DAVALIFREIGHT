@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
 import { ModuleCard } from "@/components/module-card";
+import { StatusSelector } from "@/components/status-selector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -123,12 +124,20 @@ export default function Dashboard() {
           <div className="mb-8">
             <Card>
               <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Current Status</h3>
-                  <Badge className={getStatusColor(driver.status)}>
-                    <Clock className="w-4 h-4 mr-1" />
-                    {driver.status === 'off_duty' ? `Off Duty (${formatDuration(dutyTimer)})` : driver.status.replace('_', ' ').toUpperCase()}
-                  </Badge>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Current Status</h3>
+                    {driver.status === 'off_duty' && dutyTimer > 0 && (
+                      <Badge variant="outline" className="text-gray-600">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {formatDuration(dutyTimer)}
+                      </Badge>
+                    )}
+                  </div>
+                  <StatusSelector 
+                    driverId={driver.id}
+                    currentStatus={driver.status}
+                  />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

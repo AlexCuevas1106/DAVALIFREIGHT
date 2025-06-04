@@ -49,9 +49,9 @@ export function Sidebar() {
             const isActive = location === item.href;
             return (
               <Link key={item.name} href={item.href}>
-                <a
+                <div
                   className={cn(
-                    "flex items-center px-3 py-2 rounded-lg transition-colors",
+                    "flex items-center px-3 py-2 rounded-lg transition-colors cursor-pointer",
                     isActive
                       ? "bg-blue-600 text-white"
                       : "text-gray-600 hover:bg-gray-100"
@@ -59,7 +59,7 @@ export function Sidebar() {
                 >
                   <item.icon className="w-5 h-5 mr-3" />
                   <span>{item.name}</span>
-                </a>
+                </div>
               </Link>
             );
           })}
@@ -72,10 +72,10 @@ export function Sidebar() {
           <div className="space-y-2">
             {quickActions.map((item) => (
               <Link key={item.name} href={item.href}>
-                <a className="flex items-center px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+                <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
                   <item.icon className="w-5 h-5 mr-3" />
                   <span>{item.name}</span>
-                </a>
+                </div>
               </Link>
             ))}
           </div>
