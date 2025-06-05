@@ -90,3 +90,13 @@
 .freight-gray {
   background-color: hsl(var(--freight-gray));
 }
+
+/* Sidebar collapse functionality */
+.sidebar-collapsed main {
+  margin-left: 4rem !important;
+}
+
+main {
+  margin-left: 16rem;
+  transition: margin-left 300ms ease-in-out;
+}

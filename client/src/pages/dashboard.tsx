@@ -113,7 +113,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
       
-      <main className="ml-64 sidebar-collapsed:ml-16 transition-all duration-300">
+      <main>
         <Header 
           driver={driver}
           status={driver.status}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,15 @@ const quickActions = [
 export function Sidebar() {
   const [location] = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Update document class to control main content margin
+  useEffect(() => {
+    if (isCollapsed) {
+      document.documentElement.classList.add('sidebar-collapsed');
+    } else {
+      document.documentElement.classList.remove('sidebar-collapsed');
+    }
+  }, [isCollapsed]);
 
   return (
     <aside className={cn(
