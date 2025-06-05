@@ -110,10 +110,10 @@ export default function Dashboard() {
   const { driver, currentVehicle, currentTrailer, currentShipment, hos, pendingInspections, totalDocuments, recentActivities, metrics } = dashboardData;
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       <Sidebar />
       
-      <main className="flex-1 ml-64">
+      <main className="ml-64 sidebar-collapsed:ml-16 transition-all duration-300">
         <Header 
           driver={driver}
           status={driver.status}
