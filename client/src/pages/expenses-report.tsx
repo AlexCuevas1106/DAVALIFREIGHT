@@ -357,6 +357,27 @@ export default function ExpensesReport() {
                       </div>
                     ))}
                   </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-sm text-gray-600">Total Gallons</div>
+                      <div className="text-xl font-bold text-green-600">
+                        {fuelEntries.reduce((total, entry) => 
+                          total + (parseFloat(entry.gallons) || 0), 0
+                        ).toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-sm text-gray-600">Total Cost</div>
+                      <div className="text-xl font-bold text-green-600">
+                        ${fuelEntries.reduce((total, entry) => 
+                          total + (parseFloat(entry.cost) || 0), 0
+                        ).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
