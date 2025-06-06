@@ -171,9 +171,9 @@ export default function Dashboard() {
               subtitle="Track driving hours and duty status"
               icon={Clock}
               color="bg-blue-600"
-              status={hos?.isCompliant ? "Compliant" : "Warning"}
-              mainValue={hos ? `${hos.drivingHours.toFixed(1)}h` : '0.0h'}
-              description={`Driven today (${hos ? `${Math.floor(hos.remainingDriveTime)}h ${Math.floor((hos.remainingDriveTime % 1) * 60)}m remaining` : '11h 0m remaining'})`}
+              status="Active"
+              mainValue={hos ? `${Math.floor(hos.remainingDriveTime)}h ${Math.floor((hos.remainingDriveTime % 1) * 60)}m` : '11h 0m'}
+              description="Remaining drive time"
               onClick={() => console.log('Opening HoS module')}
             />
 
