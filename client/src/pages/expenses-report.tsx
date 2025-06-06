@@ -203,6 +203,18 @@ export default function ExpensesReport() {
       const filename = `Expense_Report_${driver.name.replace(' ', '_')}_${currentDate}.pdf`;
       
       pdf.save(filename);
+
+      // Save PDF info to localStorage for documents page
+      const existingFiles = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+      const newPDFFile = {
+        id: Date.now().toString(),
+        name: filename,
+        type: 'pdf_report',
+        uploadDate: new Date().toISOString(),
+        size: 3842560 // Estimated PDF size
+      };
+      existingFiles.push(newPDFFile);
+      localStorage.setItem('uploadedFiles', JSON.stringify(existingFiles));
       
       toast({
         title: "Success",
