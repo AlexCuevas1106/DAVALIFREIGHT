@@ -74,7 +74,7 @@ export function Sidebar() {
           </Button>
         </div>
       </div>
-
+      
       <nav className={cn("mt-6 transition-all duration-300", isCollapsed ? "px-2" : "px-3")}>
         <div className="space-y-2">
           {navigation.map((item) => {
@@ -112,7 +112,7 @@ export function Sidebar() {
             return NavItem;
           })}
         </div>
-
+        
         {!isCollapsed && (
           <div className="mt-8 pt-6 border-t border-gray-200">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
@@ -130,7 +130,7 @@ export function Sidebar() {
             </div>
           </div>
         )}
-
+        
         {isCollapsed && (
           <div className="mt-8 pt-6 border-t border-gray-200">
             <div className="space-y-2">
