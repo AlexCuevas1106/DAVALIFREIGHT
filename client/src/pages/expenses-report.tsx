@@ -167,52 +167,61 @@ export default function ExpensesReport() {
 
   const generatePDF = async () => {
     setIsGeneratingPDF(true);
+
     try {
       const element = document.getElementById('expense-report-content');
-      if (!element) return;
+      if (!element) {
+        throw new Error('Report content not found');
+      }
 
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
-        allowTaint: true
+        allowTaint: true,
+        backgroundColor: '#ffffff'
       });
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      const imgWidth = 210;
-      const pageHeight = 295;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
 
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 30;
 
-      // Add additional pages if needed
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
+      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
 
-      // Generate filename with current date
-      const currentDate = new Date().toISOString().split('T')[0];
-      const filename = `Expense_Report_${driver.name.replace(' ', '_')}_${currentDate}.pdf`;
-      
-      pdf.save(filename);
-      
+      const fileName = `expenses-report-${new Date().toISOString().split('T')[0]}.pdf`;
+
+      // Convert PDF to blob and save to documents
+      const pdfBlob = pdf.output('blob');
+      const formData = new FormData();
+      formData.append('file', pdfBlob, fileName);
+      formData.append('name', `Expense Report - ${new Date().toLocaleDateString()}`);
+      formData.append('type', 'pdf_report');
+      formData.append('driverId', driver.id.toString());
+
+      // Save to documents database
+      await fetch('/api/documents/pdf', {
+        method: 'POST',
+        body: formData,
+      });
+
+      // Download the PDF
+      pdf.save(fileName);
+
       toast({
         title: "Success",
-        description: "Expense report PDF generated successfully!",
+        description: "PDF report generated and saved successfully!",
       });
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      console.error('Error generating PDF:', error);
       toast({
         title: "Error",
-        description: "Failed to generate PDF. Please try again.",
+        description: "Failed to generate PDF report",
         variant: "destructive",
       });
     } finally {
@@ -226,11 +235,33 @@ export default function ExpensesReport() {
     setFuelEntries([{ id: "1", date: "", city: "", state: "", gallons: "", cost: "" }]);
     setMiscEntries([{ id: "1", description: "", amount: "", date: "" }]);
     setMileageEntries([{ id: "1", date: "", odometer: "", location: "", miles: "" }]);
-    
+
     toast({
       title: "New Report",
       description: "Created a new expense report. All fields have been cleared.",
     });
+  };
+
+  const handleFuelImageUpload = async (entryId: string, file: File) => {
+    setFuelEntries(fuelEntries.map(entry => 
+      entry.id === entryId ? { ...entry, image: file } : entry
+    ));
+
+    // Also save to documents as expense ticket
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', `Fuel Receipt - ${new Date().toLocaleDateString()}`);
+      formData.append('type', 'expense_ticket');
+      formData.append('driverId', driver.id.toString());
+
+      await fetch('/api/documents/upload', {
+        method: 'POST',
+        body: formData,
+      });
+    } catch (error) {
+      console.error('Error saving fuel image:', error);
+    }
   };
 
   return (
@@ -425,7 +456,7 @@ export default function ExpensesReport() {
                               accept="image/*"
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
-                                if (file) updateFuelEntry(entry.id, "image", file);
+                                if (file) handleFuelImageUpload(entry.id, file);
                               }}
                               className="hidden"
                             />

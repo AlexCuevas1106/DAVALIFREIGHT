@@ -64,7 +64,9 @@ export interface IStorage {
   
   // Document operations
   getDocuments(shipmentId?: number, driverId?: number): Promise<Document[]>;
+  getDocumentById(id: number): Promise<Document | undefined>;
   createDocument(document: InsertDocument): Promise<Document>;
+  deleteDocument(id: number): Promise<void>;
   
   // Activity log operations
   getActivityLogs(driverId: number, limit?: number): Promise<ActivityLog[]>;
@@ -255,12 +257,24 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(documents).where(eq(documents.isActive, true));
   }
 
+  async getDocumentById(id: number): Promise<Document | undefined> {
+    const [document] = await db.select().from(documents).where(eq(documents.id, id));
+    return document || undefined;
+  }
+
   async createDocument(insertDocument: InsertDocument): Promise<Document> {
     const [document] = await db
       .insert(documents)
       .values(insertDocument)
       .returning();
     return document;
+  }
+
+  async deleteDocument(id: number): Promise<void> {
+    await db
+      .update(documents)
+      .set({ isActive: false })
+      .where(eq(documents.id, id));
   }
 
   async getActivityLogs(driverId: number, limit = 10): Promise<ActivityLog[]> {
