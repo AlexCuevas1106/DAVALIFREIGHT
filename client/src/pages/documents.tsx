@@ -10,116 +10,95 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import {
+import { 
+  FileText, 
   Upload,
-  FileText,
-  Image,
   Download,
   Trash2,
-  Eye,
-  Clock,
-  CheckCircle
+  Camera,
+  Receipt,
+  File,
+  Eye
 } from "lucide-react";
 
-interface BillOfLading {
+interface Document {
   id: number;
   name: string;
-  fileName: string;
+  type: string;
+  shipmentId?: number;
+  driverId: number;
+  filePath?: string;
   uploadedAt: string;
-  filePath: string;
-  type: "bill_of_lading";
+  isActive: boolean;
 }
 
-interface ExpenseTicket {
-  id: number;
+interface UploadedFile {
+  id: string;
   name: string;
-  fileName: string;
-  uploadedAt: string;
-  filePath: string;
-  type: "expense_ticket";
-}
-
-interface PDFReport {
-  id: number;
-  name: string;
-  fileName: string;
-  createdAt: string;
-  filePath: string;
-  type: "pdf_report";
+  type: 'bill_of_lading' | 'expense_receipt' | 'pdf_report';
+  uploadDate: string;
+  size?: number;
+  file?: File;
 }
 
 export default function Documents() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  const [fileName, setFileName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [documentName, setDocumentName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  
+  // Load uploaded files from localStorage
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>(() => {
+    const savedFiles = localStorage.getItem('uploadedFiles');
+    const defaultFiles = [
+      {
+        id: "1",
+        name: "BOL_Shipment_3-86539.jpg",
+        type: "bill_of_lading" as const,
+        uploadDate: "2024-01-15T10:30:00Z",
+        size: 2485760
+      },
+      {
+        id: "2", 
+        name: "Fuel_Receipt_Phoenix.jpg",
+        type: "expense_receipt" as const,
+        uploadDate: "2024-01-14T14:22:00Z",
+        size: 1024000
+      }
+    ];
+    
+    if (savedFiles) {
+      const parsed = JSON.parse(savedFiles);
+      return [...defaultFiles, ...parsed];
+    }
+    return defaultFiles;
+  });
 
-  // Driver data
+  // Driver data (you can get this from your dashboard query)
   const driver = {
     id: 1,
     name: "Skyler Droubay",
     status: "on_duty"
   };
 
-  // Query para obtener documentos
-  const { data: documents, isLoading } = useQuery({
+  const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: ['/api/documents', { driverId: driver.id }],
-  });
-
-  // Separar documentos por tipo
-  const billsOfLading = documents?.filter((doc: any) => doc.type === 'bill_of_lading') || [];
-  const expenseTickets = documents?.filter((doc: any) => doc.type === 'expense_ticket') || [];
-  const pdfReports = documents?.filter((doc: any) => doc.type === 'pdf_report') || [];
-
-  const uploadMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
-      const response = await fetch('/api/documents/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to upload file');
-      }
-      
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Bill of Lading uploaded successfully!",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
-      setSelectedFile(null);
-      setDocumentName("");
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to upload file",
-        variant: "destructive",
-      });
-    },
+    initialData: []
   });
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      // Auto-generate name from file name
-      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
-      setDocumentName(nameWithoutExt);
+      if (!fileName) {
+        setFileName(file.name.split('.')[0]);
+      }
     }
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !documentName.trim()) {
+    if (!selectedFile || !fileName.trim()) {
       toast({
         title: "Error",
         description: "Please select a file and enter a name",
@@ -129,298 +108,324 @@ export default function Documents() {
     }
 
     setIsUploading(true);
-    
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    formData.append('name', documentName);
-    formData.append('type', 'bill_of_lading');
-    formData.append('driverId', driver.id.toString());
-
     try {
-      await uploadMutation.mutateAsync(formData);
+      // Simulate upload delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const newFile: UploadedFile = {
+        id: Date.now().toString(),
+        name: `${fileName}.${selectedFile.name.split('.').pop()}`,
+        type: "bill_of_lading",
+        uploadDate: new Date().toISOString(),
+        size: selectedFile.size,
+        file: selectedFile
+      };
+
+      const updatedFiles = [newFile, ...uploadedFiles];
+      setUploadedFiles(updatedFiles);
+      localStorage.setItem('uploadedFiles', JSON.stringify(updatedFiles.filter(f => f.type !== 'bill_of_lading' && f.type !== 'expense_receipt')));
+      
+      setSelectedFile(null);
+      setFileName("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      toast({
+        title: "Success",
+        description: "Bill of Lading uploaded successfully!",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
-    try {
-      const response = await fetch(`/api/documents/${id}`, {
-        method: 'DELETE',
-      });
-      
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Document deleted successfully",
-        });
-        queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete document",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  const handleDelete = (fileId: string) => {
+    const updatedFiles = uploadedFiles.filter(file => file.id !== fileId);
+    setUploadedFiles(updatedFiles);
+    
+    // Update localStorage (excluding default files)
+    const filesToSave = updatedFiles.filter(f => !["1", "2"].includes(f.id));
+    localStorage.setItem('uploadedFiles', JSON.stringify(filesToSave));
+    
+    toast({
+      title: "Success",
+      description: "File deleted successfully",
     });
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading documents...</div>
-      </div>
-    );
-  }
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return "Unknown size";
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
+
+  const getFileIcon = (type: string) => {
+    switch (type) {
+      case 'bill_of_lading':
+        return <FileText className="w-5 h-5 text-blue-600" />;
+      case 'expense_receipt':
+        return <Receipt className="w-5 h-5 text-green-600" />;
+      case 'pdf_report':
+        return <File className="w-5 h-5 text-red-600" />;
+      default:
+        return <FileText className="w-5 h-5 text-gray-600" />;
+    }
+  };
+
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'bill_of_lading':
+        return 'Bill of Lading';
+      case 'expense_receipt':
+        return 'Expense Receipt';
+      case 'pdf_report':
+        return 'PDF Report';
+      default:
+        return 'Document';
+    }
+  };
+
+  const billOfLadingFiles = uploadedFiles.filter(file => file.type === 'bill_of_lading');
+  const expenseReceiptFiles = uploadedFiles.filter(file => file.type === 'expense_receipt');
+  const pdfReportFiles = uploadedFiles.filter(file => file.type === 'pdf_report');
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      
+
       <main>
         <Header 
           driver={driver}
           status={driver.status}
         />
-        
+
         <div className="p-6">
-          {/* Header */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Document Management</h1>
-            <p className="text-gray-600">Upload and manage your bills of lading, expense tickets, and reports</p>
+            <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
+            <p className="text-gray-600">Manage your bills of lading, receipts, and reports</p>
           </div>
 
-          {/* Upload Section */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Upload className="w-5 h-5 mr-2" />
-                Upload Bill of Lading
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="file-upload">Select Image File</Label>
-                  <Input
-                    id="file-upload"
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={handleFileSelect}
-                    className="mt-1"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="document-name">Document Name</Label>
-                  <Input
-                    id="document-name"
-                    type="text"
-                    value={documentName}
-                    onChange={(e) => setDocumentName(e.target.value)}
-                    placeholder="Enter a name for this document"
-                    className="mt-1"
-                  />
-                </div>
-
-                {selectedFile && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center">
-                      <Image className="w-4 h-4 mr-2 text-gray-500" />
-                      <span className="text-sm text-gray-700">{selectedFile.name}</span>
-                      <span className="text-xs text-gray-500 ml-2">
-                        ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                <Button
-                  onClick={handleUpload}
-                  disabled={!selectedFile || !documentName.trim() || isUploading}
-                  className="w-full"
-                >
-                  {isUploading ? (
-                    <>
-                      <Clock className="w-4 h-4 mr-2 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload Bill of Lading
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Documents Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Bills of Lading */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <FileText className="w-5 h-5 mr-2 text-blue-600" />
-                  Bills of Lading ({billsOfLading.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {billsOfLading.length === 0 ? (
-                    <p className="text-gray-500 text-sm text-center py-4">
-                      No bills of lading uploaded yet
-                    </p>
-                  ) : (
-                    billsOfLading.map((doc: any) => (
-                      <div key={doc.id} className="border rounded-lg p-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-sm text-gray-900 truncate">
-                              {doc.name}
-                            </h4>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formatDate(doc.uploadedAt)}
-                            </p>
-                          </div>
-                          <div className="flex space-x-1 ml-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => window.open(doc.filePath, '_blank')}
-                            >
-                              <Eye className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(doc.id)}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Upload Section */}
+            <div className="lg:col-span-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Upload className="w-5 h-5 mr-2 text-blue-600" />
+                    Upload Bill of Lading
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="file-name">File Name</Label>
+                    <Input
+                      id="file-name"
+                      value={fileName}
+                      onChange={(e) => setFileName(e.target.value)}
+                      placeholder="Enter file name"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="file-upload">Select File</Label>
+                    <Input
+                      ref={fileInputRef}
+                      id="file-upload"
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={handleFileSelect}
+                      className="mt-1"
+                    />
+                  </div>
 
-            {/* Expense Tickets */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Image className="w-5 h-5 mr-2 text-green-600" />
-                  Expense Tickets ({expenseTickets.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {expenseTickets.length === 0 ? (
-                    <p className="text-gray-500 text-sm text-center py-4">
-                      No expense tickets uploaded yet
-                    </p>
-                  ) : (
-                    expenseTickets.map((doc: any) => (
-                      <div key={doc.id} className="border rounded-lg p-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-sm text-gray-900 truncate">
-                              {doc.name}
-                            </h4>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formatDate(doc.uploadedAt)}
-                            </p>
-                          </div>
-                          <div className="flex space-x-1 ml-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => window.open(doc.filePath, '_blank')}
-                            >
-                              <Eye className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(doc.id)}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
+                  {selectedFile && (
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <Camera className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-700">{selectedFile.name}</span>
                       </div>
-                    ))
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formatFileSize(selectedFile.size)}
+                      </p>
+                    </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* PDF Reports */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Download className="w-5 h-5 mr-2 text-purple-600" />
-                  PDF Reports ({pdfReports.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {pdfReports.length === 0 ? (
-                    <p className="text-gray-500 text-sm text-center py-4">
-                      No PDF reports created yet
-                    </p>
+                  <Button 
+                    onClick={handleUpload} 
+                    disabled={!selectedFile || !fileName.trim() || isUploading}
+                    className="w-full"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Upload className="w-4 h-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Document
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Files Listing */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Bill of Lading Files */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                    Bills of Lading ({billOfLadingFiles.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {billOfLadingFiles.length === 0 ? (
+                    <p className="text-gray-500 text-center py-4">No bills of lading uploaded yet</p>
                   ) : (
-                    pdfReports.map((doc: any) => (
-                      <div key={doc.id} className="border rounded-lg p-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-sm text-gray-900 truncate">
-                              {doc.name}
-                            </h4>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formatDate(doc.createdAt)}
-                            </p>
-                            <Badge variant="outline" className="mt-1 text-xs">
-                              PDF Report
+                    <div className="space-y-3">
+                      {billOfLadingFiles.map((file) => (
+                        <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                          <div className="flex items-center space-x-3">
+                            {getFileIcon(file.type)}
+                            <div>
+                              <p className="font-medium text-gray-900">{file.name}</p>
+                              <p className="text-xs text-gray-500">
+                                {formatDate(file.uploadDate)} • {formatFileSize(file.size)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline" className="text-blue-600 border-blue-600">
+                              {getTypeLabel(file.type)}
                             </Badge>
-                          </div>
-                          <div className="flex space-x-1 ml-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => window.open(doc.filePath, '_blank')}
-                            >
-                              <Download className="w-3 h-3" />
+                            <Button size="sm" variant="outline">
+                              <Eye className="w-4 h-4" />
                             </Button>
-                            <Button
-                              size="sm"
+                            <Button 
+                              size="sm" 
                               variant="outline"
-                              onClick={() => handleDelete(doc.id)}
+                              onClick={() => handleDelete(file.id)}
+                              className="text-red-600 hover:text-red-700"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              {/* Expense Receipts */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Receipt className="w-5 h-5 mr-2 text-green-600" />
+                    Expense Receipts ({expenseReceiptFiles.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {expenseReceiptFiles.length === 0 ? (
+                    <p className="text-gray-500 text-center py-4">No expense receipts found</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {expenseReceiptFiles.map((file) => (
+                        <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                          <div className="flex items-center space-x-3">
+                            {getFileIcon(file.type)}
+                            <div>
+                              <p className="font-medium text-gray-900">{file.name}</p>
+                              <p className="text-xs text-gray-500">
+                                {formatDate(file.uploadDate)} • {formatFileSize(file.size)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline" className="text-green-600 border-green-600">
+                              {getTypeLabel(file.type)}
+                            </Badge>
+                            <Button size="sm" variant="outline">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleDelete(file.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* PDF Reports */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <File className="w-5 h-5 mr-2 text-red-600" />
+                    PDF Reports ({pdfReportFiles.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {pdfReportFiles.length === 0 ? (
+                    <p className="text-gray-500 text-center py-4">No PDF reports generated yet</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {pdfReportFiles.map((file) => (
+                        <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                          <div className="flex items-center space-x-3">
+                            {getFileIcon(file.type)}
+                            <div>
+                              <p className="font-medium text-gray-900">{file.name}</p>
+                              <p className="text-xs text-gray-500">
+                                {formatDate(file.uploadDate)} • {formatFileSize(file.size)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline" className="text-red-600 border-red-600">
+                              {getTypeLabel(file.type)}
+                            </Badge>
+                            <Button size="sm" variant="outline">
+                              <Download className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleDelete(file.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </main>

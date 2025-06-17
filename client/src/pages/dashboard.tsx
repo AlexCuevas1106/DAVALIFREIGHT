@@ -171,9 +171,9 @@ export default function Dashboard() {
               subtitle="Track driving hours and duty status"
               icon={Clock}
               color="bg-blue-600"
-              status={hos?.isCompliant ? "Compliant" : "Warning"}
-              mainValue={hos ? `${hos.drivingHours.toFixed(1)}h` : '0.0h'}
-              description={`Driven today (${hos ? `${Math.floor(hos.remainingDriveTime)}h ${Math.floor((hos.remainingDriveTime % 1) * 60)}m remaining` : '11h 0m remaining'})`}
+              status={driver.status === 'driving' ? "Driving" : "Active"}
+              mainValue={hos ? `${Math.floor(hos.drivingHours)}h ${Math.floor((hos.drivingHours % 1) * 60)}m` : '0h 0m'}
+              description={driver.status === 'driving' ? "Currently driving" : "Total driving time"}
               onClick={() => console.log('Opening HoS module')}
             />
 
@@ -207,7 +207,7 @@ export default function Dashboard() {
               status="Updated"
               mainValue={totalDocuments.toString()}
               description="Total documents"
-              onClick={() => console.log('Opening Documents module')}
+              onClick={() => window.location.href = '/documents'}
             />
 
             <ModuleCard
