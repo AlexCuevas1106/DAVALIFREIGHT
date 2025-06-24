@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
@@ -54,15 +55,15 @@ export default function ExpensesReport() {
   const [destinations, setDestinations] = useState<Destination[]>([
     { id: "1", origin: "", destination: "" }
   ]);
-
+  
   const [fuelEntries, setFuelEntries] = useState<FuelEntry[]>([
     { id: "1", date: "", city: "", state: "", gallons: "", cost: "" }
   ]);
-
+  
   const [miscEntries, setMiscEntries] = useState<MiscellaneousEntry[]>([
     { id: "1", description: "", amount: "", date: "" }
   ]);
-
+  
   const [mileageEntries, setMileageEntries] = useState<MileageEntry[]>([
     { id: "1", date: "", odometer: "", location: "", miles: "" }
   ]);
@@ -171,13 +172,13 @@ export default function ExpensesReport() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
-
+      
       <main>
         <Header 
           driver={driver}
           status={driver.status}
         />
-
+        
         <div className="p-6">
           {/* Header */}
           <div className="mb-6">
@@ -458,7 +459,7 @@ export default function ExpensesReport() {
                             </Button>
                           )}
                         </div>
-
+                        
                         <div>
                           <Label htmlFor={`mile-date-${entry.id}`} className="text-xs">Date</Label>
                           <Input
@@ -469,7 +470,7 @@ export default function ExpensesReport() {
                             className="text-xs h-8"
                           />
                         </div>
-
+                        
                         <div>
                           <Label htmlFor={`mile-odometer-${entry.id}`} className="text-xs">Odometer</Label>
                           <Input
@@ -481,7 +482,7 @@ export default function ExpensesReport() {
                             className="text-xs h-8"
                           />
                         </div>
-
+                        
                         <div>
                           <Label htmlFor={`mile-location-${entry.id}`} className="text-xs">Location</Label>
                           <Input
@@ -492,7 +493,7 @@ export default function ExpensesReport() {
                             className="text-xs h-8"
                           />
                         </div>
-
+                        
                         <div>
                           <Label htmlFor={`mile-miles-${entry.id}`} className="text-xs">Miles Traveled</Label>
                           <Input
@@ -507,25 +508,17 @@ export default function ExpensesReport() {
                       </div>
                     ))}
                   </div>
-
+                  
                   <Separator className="my-4" />
-
-                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="text-center">
-                      <div className="text-sm text-gray-600">Total Gallons</div>
-                      <div className="text-xl font-bold text-green-600">
-                        {fuelEntries.reduce((total, entry) => 
-                          total + (parseFloat(entry.gallons) || 0), 0
-                        ).toFixed(2)} gal
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm text-gray-600">Total Cost</div>
-                      <div className="text-xl font-bold text-green-600">
-                        ${fuelEntries.reduce((total, entry) => 
-                          total + (parseFloat(entry.cost) || 0), 0
-                        ).toFixed(2)}
-                      </div>
+                  
+                  <div className="text-sm">
+                    <div className="flex justify-between items-center font-medium">
+                      <span>Total Miles:</span>
+                      <span>
+                        {mileageEntries.reduce((total, entry) => 
+                          total + (parseFloat(entry.miles) || 0), 0
+                        ).toFixed(0)}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
