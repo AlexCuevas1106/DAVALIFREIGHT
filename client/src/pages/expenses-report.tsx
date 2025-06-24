@@ -8,9 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { 
   Truck, 
   Plus, 
@@ -19,8 +16,7 @@ import {
   MapPin,
   DollarSign,
   FileText,
-  Clock,
-  Download
+  Clock
 } from "lucide-react";
 
 interface FuelEntry {
@@ -55,7 +51,6 @@ interface MileageEntry {
 }
 
 export default function ExpensesReport() {
-  const { toast } = useToast();
   const [destinations, setDestinations] = useState<Destination[]>([
     { id: "1", origin: "", destination: "" }
   ]);
@@ -71,8 +66,6 @@ export default function ExpensesReport() {
   const [mileageEntries, setMileageEntries] = useState<MileageEntry[]>([
     { id: "1", date: "", odometer: "", location: "", miles: "" }
   ]);
-
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   // Driver data (you can get this from your dashboard query)
   const driver = {
@@ -165,71 +158,13 @@ export default function ExpensesReport() {
     ));
   };
 
-  const generatePDF = async () => {
-    setIsGeneratingPDF(true);
-    try {
-      const element = document.getElementById('expense-report-content');
-      if (!element) return;
-
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      const imgWidth = 210;
-      const pageHeight = 295;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      // Add additional pages if needed
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      // Generate filename with current date
-      const currentDate = new Date().toISOString().split('T')[0];
-      const filename = `Expense_Report_${driver.name.replace(' ', '_')}_${currentDate}.pdf`;
-      
-      pdf.save(filename);
-      
-      toast({
-        title: "Success",
-        description: "Expense report PDF generated successfully!",
-      });
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGeneratingPDF(false);
-    }
-  };
-
-  const createNewReport = () => {
-    // Reset all form data
-    setDestinations([{ id: "1", origin: "", destination: "" }]);
-    setFuelEntries([{ id: "1", date: "", city: "", state: "", gallons: "", cost: "" }]);
-    setMiscEntries([{ id: "1", description: "", amount: "", date: "" }]);
-    setMileageEntries([{ id: "1", date: "", odometer: "", location: "", miles: "" }]);
-    
-    toast({
-      title: "New Report",
-      description: "Created a new expense report. All fields have been cleared.",
+  const handleSaveReport = () => {
+    // Here you would save the report data to your backend
+    console.log("Saving expenses report...", {
+      destinations,
+      fuelEntries,
+      miscEntries,
+      mileageEntries
     });
   };
 
@@ -251,43 +186,12 @@ export default function ExpensesReport() {
                 <h1 className="text-2xl font-bold text-gray-900">Expenses Report</h1>
                 <p className="text-gray-600">Track fuel, destinations, and trip expenses</p>
               </div>
-              <div className="flex gap-3">
-                <Button 
-                  onClick={createNewReport} 
-                  variant="outline"
-                  className="border-green-600 text-green-600 hover:bg-green-50"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  New Report
-                </Button>
-                <Button 
-                  onClick={generatePDF} 
-                  disabled={isGeneratingPDF}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {isGeneratingPDF ? (
-                    <>
-                      <Clock className="w-4 h-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4 mr-2" />
-                      Save as PDF
-                    </>
-                  )}
-                </Button>
-              </div>
+              <Button onClick={handleSaveReport} className="bg-blue-600 hover:bg-blue-700">
+                <FileText className="w-4 h-4 mr-2" />
+                Save Report
+              </Button>
             </div>
           </div>
-
-          <div id="expense-report-content" className="bg-white p-6 rounded-lg">
-            {/* Report Header for PDF */}
-            <div className="mb-6 text-center border-b pb-4">
-              <h2 className="text-xl font-bold text-gray-900">Expense Report</h2>
-              <p className="text-gray-600">Driver: {driver.name}</p>
-              <p className="text-gray-500 text-sm">Generated on: {new Date().toLocaleDateString()}</p>
-            </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Main Content */}
@@ -627,35 +531,6 @@ export default function ExpensesReport() {
                 </CardContent>
               </Card>
             </div>
-          </div>
-
-          {/* Summary Section for PDF */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-            <div className="text-center">
-              <div className="text-sm text-gray-600">Total Gallons</div>
-              <div className="text-xl font-bold text-green-600">
-                {fuelEntries.reduce((total, entry) => 
-                  total + (parseFloat(entry.gallons) || 0), 0
-                ).toFixed(2)} gal
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-sm text-gray-600">Total Fuel Cost</div>
-              <div className="text-xl font-bold text-green-600">
-                ${fuelEntries.reduce((total, entry) => 
-                  total + (parseFloat(entry.cost) || 0), 0
-                ).toFixed(2)}
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-sm text-gray-600">Total Misc. Expenses</div>
-              <div className="text-xl font-bold text-purple-600">
-                ${miscEntries.reduce((total, entry) => 
-                  total + (parseFloat(entry.amount) || 0), 0
-                ).toFixed(2)}
-              </div>
-            </div>
-          </div>
           </div>
         </div>
       </main>
