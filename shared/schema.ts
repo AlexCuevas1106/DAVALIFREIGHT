@@ -1,10 +1,9 @@
-
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const drivers = sqliteTable("drivers", {
-  id: integer("id").primaryKey(),
+export const drivers = pgTable("drivers", {
+  id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   name: text("name").notNull(),
   email: text("email").notNull(),
@@ -12,14 +11,14 @@ export const drivers = sqliteTable("drivers", {
   licenseNumber: text("license_number").notNull(),
   role: text("role").notNull().default("driver"),
   status: text("status").notNull().default("off_duty"), // off_duty, on_duty, driving, sleeper
-  dutyStartTime: text("duty_start_time"),
+  dutyStartTime: timestamp("duty_start_time"),
   currentVehicleId: integer("current_vehicle_id"),
   currentTrailerId: integer("current_trailer_id"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  isActive: boolean("is_active").notNull().default(true),
 });
 
-export const vehicles = sqliteTable("vehicles", {
-  id: integer("id").primaryKey(),
+export const vehicles = pgTable("vehicles", {
+  id: serial("id").primaryKey(),
   vehicleNumber: text("vehicle_number").notNull().unique(),
   make: text("make").notNull(),
   model: text("model").notNull(),
@@ -29,22 +28,22 @@ export const vehicles = sqliteTable("vehicles", {
   fuelLevel: real("fuel_level").notNull().default(100),
   mileage: integer("mileage").notNull().default(0),
   status: text("status").notNull().default("available"), // available, in_use, maintenance
-  lastInspectionDate: text("last_inspection_date"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  lastInspectionDate: timestamp("last_inspection_date"),
+  isActive: boolean("is_active").notNull().default(true),
 });
 
-export const trailers = sqliteTable("trailers", {
-  id: integer("id").primaryKey(),
+export const trailers = pgTable("trailers", {
+  id: serial("id").primaryKey(),
   trailerNumber: text("trailer_number").notNull().unique(),
   type: text("type").notNull(),
   capacity: real("capacity").notNull(),
   status: text("status").notNull().default("available"), // available, in_use, maintenance
-  lastInspectionDate: text("last_inspection_date"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  lastInspectionDate: timestamp("last_inspection_date"),
+  isActive: boolean("is_active").notNull().default(true),
 });
 
-export const shipments = sqliteTable("shipments", {
-  id: integer("id").primaryKey(),
+export const shipments = pgTable("shipments", {
+  id: serial("id").primaryKey(),
   shippingId: text("shipping_id").notNull().unique(),
   origin: text("origin").notNull(),
   destination: text("destination").notNull(),
@@ -54,52 +53,52 @@ export const shipments = sqliteTable("shipments", {
   assignedTrailerId: integer("assigned_trailer_id"),
   estimatedDistance: integer("estimated_distance"),
   actualDistance: integer("actual_distance"),
-  createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
-  deliveryDate: text("delivery_date"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  deliveryDate: timestamp("delivery_date"),
+  isActive: boolean("is_active").notNull().default(true),
 });
 
-export const hoursOfService = sqliteTable("hours_of_service", {
-  id: integer("id").primaryKey(),
+export const hoursOfService = pgTable("hours_of_service", {
+  id: serial("id").primaryKey(),
   driverId: integer("driver_id").notNull(),
-  date: text("date").notNull().default("CURRENT_TIMESTAMP"),
+  date: timestamp("date").notNull().defaultNow(),
   drivingHours: real("driving_hours").notNull().default(0),
   onDutyHours: real("on_duty_hours").notNull().default(0),
   remainingDriveTime: real("remaining_drive_time").notNull().default(11), // 11 hours max
   remainingDutyTime: real("remaining_duty_time").notNull().default(14), // 14 hours max
-  isCompliant: integer("is_compliant", { mode: "boolean" }).notNull().default(true),
+  isCompliant: boolean("is_compliant").notNull().default(true),
 });
 
-export const inspectionReports = sqliteTable("inspection_reports", {
-  id: integer("id").primaryKey(),
+export const inspectionReports = pgTable("inspection_reports", {
+  id: serial("id").primaryKey(),
   driverId: integer("driver_id").notNull(),
   vehicleId: integer("vehicle_id").notNull(),
   trailerId: integer("trailer_id"),
   type: text("type").notNull(), // pre_trip, post_trip
   status: text("status").notNull().default("pending"), // pending, completed, failed
-  defectsFound: integer("defects_found", { mode: "boolean" }).notNull().default(false),
+  defectsFound: boolean("defects_found").notNull().default(false),
   notes: text("notes"),
-  createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
-  completedAt: text("completed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
 });
 
-export const documents = sqliteTable("documents", {
-  id: integer("id").primaryKey(),
+export const documents = pgTable("documents", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   type: text("type").notNull(), // bill_of_lading, manifest, permit, etc.
   shipmentId: integer("shipment_id"),
   driverId: integer("driver_id"),
   filePath: text("file_path"),
-  uploadedAt: text("uploaded_at").notNull().default("CURRENT_TIMESTAMP"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
+  isActive: boolean("is_active").notNull().default(true),
 });
 
-export const activityLogs = sqliteTable("activity_logs", {
-  id: integer("id").primaryKey(),
+export const activityLogs = pgTable("activity_logs", {
+  id: serial("id").primaryKey(),
   driverId: integer("driver_id").notNull(),
   activity: text("activity").notNull(),
   description: text("description").notNull(),
-  timestamp: text("timestamp").notNull().default("CURRENT_TIMESTAMP"),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
   relatedEntityType: text("related_entity_type"), // vehicle, shipment, etc.
   relatedEntityId: integer("related_entity_id"),
 });

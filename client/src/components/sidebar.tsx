@@ -22,7 +22,7 @@ const navigation = [
   { name: "Vehicles", href: "/vehicles", icon: Truck },
   { name: "Routes", href: "/routes", icon: Route },
   { name: "Shipments", href: "/shipments", icon: Package },
-  { name: "Expenses Report", href: "/expenses-report", icon: FileText },
+  { name: "Reports", href: "/reports", icon: FileText },
 ];
 
 const quickActions = [
