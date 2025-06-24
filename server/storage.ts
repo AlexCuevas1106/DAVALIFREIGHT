@@ -279,4 +279,402 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// Temporarily use MemStorage while database connection is being resolved
+export class MemStorage implements IStorage {
+  private drivers: Map<number, Driver> = new Map();
+  private vehicles: Map<number, Vehicle> = new Map();
+  private trailers: Map<number, Trailer> = new Map();
+  private shipments: Map<number, Shipment> = new Map();
+  private hoursOfService: Map<number, HoursOfService> = new Map();
+  private inspectionReports: Map<number, InspectionReport> = new Map();
+  private documents: Map<number, Document> = new Map();
+  private activityLogs: Map<number, ActivityLog> = new Map();
+  
+  private currentDriverId = 1;
+  private currentVehicleId = 1;
+  private currentTrailerId = 1;
+  private currentShipmentId = 1;
+  private currentHoSId = 1;
+  private currentInspectionId = 1;
+  private currentDocumentId = 1;
+  private currentActivityId = 1;
+
+  constructor() {
+    this.seedData();
+  }
+
+  private seedData() {
+    // Create sample driver
+    const driver: Driver = {
+      id: this.currentDriverId++,
+      username: "skyler.droubay",
+      name: "Skyler Droubay",
+      email: "skyler@davalifreight.com",
+      phone: "+1-555-0123",
+      licenseNumber: "CDL-123456789",
+      role: "driver",
+      status: "off_duty",
+      dutyStartTime: new Date(Date.now() - 21 * 60 * 1000),
+      currentVehicleId: 1,
+      currentTrailerId: null,
+      isActive: true,
+    };
+    this.drivers.set(driver.id, driver);
+
+    // Create sample vehicle
+    const vehicle: Vehicle = {
+      id: this.currentVehicleId++,
+      vehicleNumber: "25",
+      make: "Peterbilt",
+      model: "579",
+      year: 2022,
+      vin: "1XPWD40X1ED123456",
+      licensePlate: "DVL-025",
+      fuelLevel: 78,
+      mileage: 125000,
+      status: "in_use",
+      lastInspectionDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      isActive: true,
+    };
+    this.vehicles.set(vehicle.id, vehicle);
+
+    // Create sample trailer
+    const trailer: Trailer = {
+      id: this.currentTrailerId++,
+      trailerNumber: "00",
+      type: "Dry Van",
+      capacity: 53,
+      status: "available",
+      lastInspectionDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+      isActive: true,
+    };
+    this.trailers.set(trailer.id, trailer);
+
+    // Update driver with assignments
+    driver.currentVehicleId = vehicle.id;
+    driver.currentTrailerId = trailer.id;
+
+    // Create sample shipment
+    const shipment: Shipment = {
+      id: this.currentShipmentId++,
+      shippingId: "3-86539",
+      origin: "Los Angeles, CA",
+      destination: "Phoenix, AZ",
+      status: "in_transit",
+      assignedDriverId: driver.id,
+      assignedVehicleId: vehicle.id,
+      assignedTrailerId: trailer.id,
+      estimatedDistance: 400,
+      actualDistance: 347,
+      createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+      deliveryDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+      isActive: true,
+    };
+    this.shipments.set(shipment.id, shipment);
+
+    // Create HoS record
+    const hos: HoursOfService = {
+      id: this.currentHoSId++,
+      driverId: driver.id,
+      date: new Date(),
+      drivingHours: 2.3,
+      onDutyHours: 5.5,
+      remainingDriveTime: 8.7,
+      remainingDutyTime: 8.5,
+      isCompliant: true,
+    };
+    this.hoursOfService.set(driver.id, hos);
+
+    // Create sample inspection reports
+    const inspection1: InspectionReport = {
+      id: this.currentInspectionId++,
+      driverId: driver.id,
+      vehicleId: vehicle.id,
+      trailerId: trailer.id,
+      type: "pre_trip",
+      status: "completed",
+      defectsFound: false,
+      notes: "All systems operational",
+      createdAt: new Date(Date.now() - 2 * 60 * 1000),
+      completedAt: new Date(Date.now() - 1 * 60 * 1000),
+    };
+    this.inspectionReports.set(inspection1.id, inspection1);
+
+    const inspection2: InspectionReport = {
+      id: this.currentInspectionId++,
+      driverId: driver.id,
+      vehicleId: vehicle.id,
+      trailerId: null,
+      type: "post_trip",
+      status: "pending",
+      defectsFound: false,
+      notes: null,
+      createdAt: new Date(Date.now() - 30 * 60 * 1000),
+      completedAt: null,
+    };
+    this.inspectionReports.set(inspection2.id, inspection2);
+
+    // Create sample documents
+    for (let i = 0; i < 12; i++) {
+      const doc: Document = {
+        id: this.currentDocumentId++,
+        name: `Bill of Lading ${i + 1}`,
+        type: "bill_of_lading",
+        shipmentId: shipment.id,
+        driverId: driver.id,
+        filePath: `/documents/bol_${i + 1}.pdf`,
+        uploadedAt: new Date(Date.now() - i * 60 * 60 * 1000),
+        isActive: true,
+      };
+      this.documents.set(doc.id, doc);
+    }
+
+    // Create activity logs
+    const activities = [
+      {
+        activity: "Vehicle inspection completed",
+        description: "Vehicle #25 - Pre-trip inspection completed successfully",
+        relatedEntityType: "vehicle",
+        relatedEntityId: vehicle.id,
+        timestamp: new Date(Date.now() - 2 * 60 * 1000),
+      },
+      {
+        activity: "Route updated",
+        description: "Route updated for delivery #3-86539",
+        relatedEntityType: "shipment",
+        relatedEntityId: shipment.id,
+        timestamp: new Date(Date.now() - 15 * 60 * 1000),
+      },
+      {
+        activity: "Documents uploaded",
+        description: "Documents uploaded for shipment",
+        relatedEntityType: "shipment",
+        relatedEntityId: shipment.id,
+        timestamp: new Date(Date.now() - 60 * 60 * 1000),
+      },
+    ];
+
+    activities.forEach((activity) => {
+      const log: ActivityLog = {
+        id: this.currentActivityId++,
+        driverId: driver.id,
+        ...activity,
+      };
+      this.activityLogs.set(log.id, log);
+    });
+  }
+
+  // Driver operations
+  async getDriver(id: number): Promise<Driver | undefined> {
+    return this.drivers.get(id);
+  }
+
+  async getDriverByUsername(username: string): Promise<Driver | undefined> {
+    return Array.from(this.drivers.values()).find(d => d.username === username);
+  }
+
+  async getAllDrivers(): Promise<Driver[]> {
+    return Array.from(this.drivers.values()).filter(d => d.isActive);
+  }
+
+  async createDriver(insertDriver: InsertDriver): Promise<Driver> {
+    const driver: Driver = {
+      ...insertDriver,
+      id: this.currentDriverId++,
+      dutyStartTime: null,
+      isActive: true,
+    };
+    this.drivers.set(driver.id, driver);
+    return driver;
+  }
+
+  async updateDriver(id: number, updates: Partial<Driver>): Promise<Driver | undefined> {
+    const driver = this.drivers.get(id);
+    if (!driver) return undefined;
+    
+    const updated = { ...driver, ...updates };
+    this.drivers.set(id, updated);
+    return updated;
+  }
+
+  // Vehicle operations
+  async getVehicle(id: number): Promise<Vehicle | undefined> {
+    return this.vehicles.get(id);
+  }
+
+  async getAllVehicles(): Promise<Vehicle[]> {
+    return Array.from(this.vehicles.values()).filter(v => v.isActive);
+  }
+
+  async createVehicle(insertVehicle: InsertVehicle): Promise<Vehicle> {
+    const vehicle: Vehicle = {
+      ...insertVehicle,
+      id: this.currentVehicleId++,
+      fuelLevel: 100,
+      mileage: 0,
+      status: "available",
+      lastInspectionDate: null,
+      isActive: true,
+    };
+    this.vehicles.set(vehicle.id, vehicle);
+    return vehicle;
+  }
+
+  async updateVehicle(id: number, updates: Partial<Vehicle>): Promise<Vehicle | undefined> {
+    const vehicle = this.vehicles.get(id);
+    if (!vehicle) return undefined;
+    
+    const updated = { ...vehicle, ...updates };
+    this.vehicles.set(id, updated);
+    return updated;
+  }
+
+  // Trailer operations
+  async getTrailer(id: number): Promise<Trailer | undefined> {
+    return this.trailers.get(id);
+  }
+
+  async getAllTrailers(): Promise<Trailer[]> {
+    return Array.from(this.trailers.values()).filter(t => t.isActive);
+  }
+
+  async createTrailer(insertTrailer: InsertTrailer): Promise<Trailer> {
+    const trailer: Trailer = {
+      ...insertTrailer,
+      id: this.currentTrailerId++,
+      status: "available",
+      lastInspectionDate: null,
+      isActive: true,
+    };
+    this.trailers.set(trailer.id, trailer);
+    return trailer;
+  }
+
+  // Shipment operations
+  async getShipment(id: number): Promise<Shipment | undefined> {
+    return this.shipments.get(id);
+  }
+
+  async getShipmentByShippingId(shippingId: string): Promise<Shipment | undefined> {
+    return Array.from(this.shipments.values()).find(s => s.shippingId === shippingId);
+  }
+
+  async getAllShipments(): Promise<Shipment[]> {
+    return Array.from(this.shipments.values()).filter(s => s.isActive);
+  }
+
+  async getShipmentsByDriver(driverId: number): Promise<Shipment[]> {
+    return Array.from(this.shipments.values()).filter(s => s.assignedDriverId === driverId && s.isActive);
+  }
+
+  async createShipment(insertShipment: InsertShipment): Promise<Shipment> {
+    const shipment: Shipment = {
+      ...insertShipment,
+      id: this.currentShipmentId++,
+      status: "pending",
+      actualDistance: null,
+      createdAt: new Date(),
+      deliveryDate: null,
+      isActive: true,
+    };
+    this.shipments.set(shipment.id, shipment);
+    return shipment;
+  }
+
+  async updateShipment(id: number, updates: Partial<Shipment>): Promise<Shipment | undefined> {
+    const shipment = this.shipments.get(id);
+    if (!shipment) return undefined;
+    
+    const updated = { ...shipment, ...updates };
+    this.shipments.set(id, updated);
+    return updated;
+  }
+
+  // Hours of Service operations
+  async getHoSByDriver(driverId: number): Promise<HoursOfService | undefined> {
+    return this.hoursOfService.get(driverId);
+  }
+
+  async updateHoS(driverId: number, hosUpdates: Partial<HoursOfService>): Promise<HoursOfService> {
+    const existing = this.hoursOfService.get(driverId);
+    const hos: HoursOfService = existing ? { ...existing, ...hosUpdates } : {
+      id: this.currentHoSId++,
+      driverId,
+      date: new Date(),
+      drivingHours: 0,
+      onDutyHours: 0,
+      remainingDriveTime: 11,
+      remainingDutyTime: 14,
+      isCompliant: true,
+      ...hosUpdates,
+    };
+    this.hoursOfService.set(driverId, hos);
+    return hos;
+  }
+
+  // Inspection operations
+  async getInspectionReports(driverId?: number): Promise<InspectionReport[]> {
+    const reports = Array.from(this.inspectionReports.values());
+    return driverId ? reports.filter(r => r.driverId === driverId) : reports;
+  }
+
+  async createInspectionReport(insertReport: InsertInspectionReport): Promise<InspectionReport> {
+    const report: InspectionReport = {
+      ...insertReport,
+      id: this.currentInspectionId++,
+      status: "pending",
+      createdAt: new Date(),
+      completedAt: null,
+    };
+    this.inspectionReports.set(report.id, report);
+    return report;
+  }
+
+  async updateInspectionReport(id: number, updates: Partial<InspectionReport>): Promise<InspectionReport | undefined> {
+    const report = this.inspectionReports.get(id);
+    if (!report) return undefined;
+    
+    const updated = { ...report, ...updates };
+    this.inspectionReports.set(id, updated);
+    return updated;
+  }
+
+  // Document operations
+  async getDocuments(shipmentId?: number, driverId?: number): Promise<Document[]> {
+    let docs = Array.from(this.documents.values()).filter(d => d.isActive);
+    if (shipmentId) docs = docs.filter(d => d.shipmentId === shipmentId);
+    if (driverId) docs = docs.filter(d => d.driverId === driverId);
+    return docs;
+  }
+
+  async createDocument(insertDocument: InsertDocument): Promise<Document> {
+    const document: Document = {
+      ...insertDocument,
+      id: this.currentDocumentId++,
+      uploadedAt: new Date(),
+      isActive: true,
+    };
+    this.documents.set(document.id, document);
+    return document;
+  }
+
+  // Activity log operations
+  async getActivityLogs(driverId: number, limit = 10): Promise<ActivityLog[]> {
+    return Array.from(this.activityLogs.values())
+      .filter(log => log.driverId === driverId)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, limit);
+  }
+
+  async createActivityLog(insertLog: InsertActivityLog): Promise<ActivityLog> {
+    const log: ActivityLog = {
+      ...insertLog,
+      id: this.currentActivityId++,
+      timestamp: new Date(),
+    };
+    this.activityLogs.set(log.id, log);
+    return log;
+  }
+}
+
+export const storage = new MemStorage();
