@@ -13,6 +13,80 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const httpServer = createServer(app);
+
+  // Document management endpoints
+  app.get("/api/documents", async (req, res) => {
+    try {
+      const { driverId, fileType } = req.query;
+      const documents = await storage.getDocumentFiles(
+        driverId ? parseInt(driverId as string) : undefined,
+        fileType as string
+      );
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+      res.status(500).json({ error: "Failed to fetch documents" });
+    }
+  });
+
+  app.post("/api/documents/upload", async (req, res) => {
+    try {
+      const { fileName, fileType, driverId, vehicleId, fileData, fileSize, originalName } = req.body;
+      
+      const document = await storage.createDocumentFile({
+        fileName,
+        originalName: originalName || fileName,
+        fileType,
+        driverId: parseInt(driverId),
+        vehicleId: vehicleId ? parseInt(vehicleId) : undefined,
+        fileSize: parseInt(fileSize),
+        filePath: `/uploads/${fileName}`,
+        fileData
+      });
+
+      res.json(document);
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      res.status(500).json({ error: "Failed to upload document" });
+    }
+  });
+
+  app.get("/api/documents/:id/download", async (req, res) => {
+    try {
+      const document = await storage.getDocumentFile(parseInt(req.params.id));
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      if (document.fileData) {
+        const buffer = Buffer.from(document.fileData, 'base64');
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Disposition', `attachment; filename="${document.originalName}"`);
+        res.send(buffer);
+      } else {
+        res.status(404).json({ error: "File data not found" });
+      }
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      res.status(500).json({ error: "Failed to download document" });
+    }
+  });
+
+  app.delete("/api/documents/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteDocumentFile(parseInt(req.params.id));
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: "Document not found" });
+      }
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      res.status(500).json({ error: "Failed to delete document" });
+    }
+  });
+
   // Driver routes
   app.get("/api/drivers", async (req, res) => {
     try {
@@ -330,6 +404,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
   return httpServer;
 }

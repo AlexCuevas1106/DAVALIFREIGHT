@@ -157,17 +157,73 @@ export default function ExpensesReport() {
   const totalFuelCost = fuelEntries.reduce((sum, entry) => sum + (entry.cost || 0), 0);
   const totalMiscCost = miscEntries.reduce((sum, entry) => sum + (entry.amount || 0), 0);
 
-  const handleImageUpload = (entryId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (entryId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       updateFuelEntry(entryId, 'image', file);
+      
+      // Auto-upload fuel receipt to document management system
+      try {
+        const fileData = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = (reader.result as string).split(',')[1];
+            resolve(base64);
+          };
+          reader.readAsDataURL(file);
+        });
+
+        const timestamp = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-');
+        const fileName = `Fuel_Receipt_${timestamp}`;
+
+        await fetch('/api/documents/upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fileName,
+            originalName: file.name,
+            fileType: 'fuel_receipt',
+            driverId: driver.id.toString(),
+            fileSize: file.size.toString(),
+            fileData
+          })
+        });
+      } catch (error) {
+        console.error('Failed to upload fuel receipt:', error);
+      }
     }
   };
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     // Create a new window with the report content
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+
+    // Also save PDF metadata to document management system
+    try {
+      const timestamp = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-');
+      const fileName = `Trip_Report_${tripRecord.loadNumber || timestamp}`;
+      
+      await fetch('/api/documents/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName,
+          originalName: `${fileName}.pdf`,
+          fileType: 'pdf_report',
+          driverId: driver.id.toString(),
+          fileSize: '1024', // Placeholder size
+          filePath: `/reports/${fileName}.pdf`,
+          fileData: null // PDF content would be generated server-side in a real implementation
+        })
+      });
+    } catch (error) {
+      console.error('Failed to save PDF record:', error);
+    }
 
     const printContent = `
       <!DOCTYPE html>

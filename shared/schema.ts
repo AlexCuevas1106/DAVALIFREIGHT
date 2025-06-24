@@ -103,6 +103,19 @@ export const activityLogs = pgTable("activity_logs", {
   relatedEntityId: integer("related_entity_id"),
 });
 
+export const documentFiles = pgTable("document_files", {
+  id: serial("id").primaryKey(),
+  fileName: text("file_name").notNull(),
+  originalName: text("original_name").notNull(),
+  fileType: text("file_type", { enum: ["bill_of_lading", "fuel_receipt", "pdf_report"] }).notNull(),
+  uploadDate: timestamp("upload_date").defaultNow().notNull(),
+  driverId: integer("driver_id").references(() => drivers.id).notNull(),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id),
+  fileSize: integer("file_size").notNull(),
+  filePath: text("file_path").notNull(),
+  fileData: text("file_data"), // Base64 encoded file data
+});
+
 // Insert schemas
 export const insertDriverSchema = createInsertSchema(drivers).omit({
   id: true,
@@ -153,6 +166,11 @@ export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
   timestamp: true,
 });
 
+export const insertDocumentFileSchema = createInsertSchema(documentFiles).omit({
+  id: true,
+  uploadDate: true,
+});
+
 // Types
 export type Driver = typeof drivers.$inferSelect;
 export type InsertDriver = z.infer<typeof insertDriverSchema>;
@@ -169,3 +187,5 @@ export type Document = typeof documents.$inferSelect;
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+export type DocumentFile = typeof documentFiles.$inferSelect;
+export type InsertDocumentFile = z.infer<typeof insertDocumentFileSchema>;

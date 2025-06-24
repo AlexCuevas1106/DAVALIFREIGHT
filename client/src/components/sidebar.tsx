@@ -10,6 +10,7 @@ import {
   Route,
   Package,
   FileText,
+  Folder,
   Plus,
   ClipboardCheck,
   Menu,
@@ -23,6 +24,7 @@ const navigation = [
   { name: "Routes", href: "/routes", icon: Route },
   { name: "Shipments", href: "/shipments", icon: Package },
   { name: "Expenses Report", href: "/expenses-report", icon: FileText },
+  { name: "Documents", href: "/documents", icon: Folder },
 ];
 
 const quickActions = [

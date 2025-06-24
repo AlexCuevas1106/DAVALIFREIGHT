@@ -69,6 +69,12 @@ export interface IStorage {
   // Activity log operations
   getActivityLogs(driverId: number, limit?: number): Promise<ActivityLog[]>;
   createActivityLog(log: InsertActivityLog): Promise<ActivityLog>;
+  
+  // Document file operations
+  getDocumentFiles(driverId?: number, fileType?: string): Promise<DocumentFile[]>;
+  createDocumentFile(document: InsertDocumentFile): Promise<DocumentFile>;
+  getDocumentFile(id: number): Promise<DocumentFile | undefined>;
+  deleteDocumentFile(id: number): Promise<boolean>;
 }
 
 
@@ -289,6 +295,7 @@ export class MemStorage implements IStorage {
   private inspectionReports: Map<number, InspectionReport> = new Map();
   private documents: Map<number, Document> = new Map();
   private activityLogs: Map<number, ActivityLog> = new Map();
+  private documentFiles: Map<number, DocumentFile> = new Map();
   
   private currentDriverId = 1;
   private currentVehicleId = 1;
@@ -298,6 +305,7 @@ export class MemStorage implements IStorage {
   private currentInspectionId = 1;
   private currentDocumentId = 1;
   private currentActivityId = 1;
+  private currentDocumentFileId = 1;
 
   constructor() {
     this.seedData();
@@ -674,6 +682,40 @@ export class MemStorage implements IStorage {
     };
     this.activityLogs.set(log.id, log);
     return log;
+  }
+
+  async getDocumentFiles(driverId?: number, fileType?: string): Promise<DocumentFile[]> {
+    const allFiles = Array.from(this.documentFiles.values());
+    return allFiles.filter(file => {
+      const matchesDriver = !driverId || file.driverId === driverId;
+      const matchesType = !fileType || file.fileType === fileType;
+      return matchesDriver && matchesType;
+    });
+  }
+
+  async createDocumentFile(insertDocument: InsertDocumentFile): Promise<DocumentFile> {
+    const document: DocumentFile = {
+      id: this.currentDocumentFileId++,
+      fileName: insertDocument.fileName,
+      originalName: insertDocument.originalName,
+      fileType: insertDocument.fileType as any,
+      uploadDate: new Date(),
+      driverId: insertDocument.driverId,
+      vehicleId: insertDocument.vehicleId || null,
+      fileSize: insertDocument.fileSize,
+      filePath: insertDocument.filePath,
+      fileData: insertDocument.fileData || null,
+    };
+    this.documentFiles.set(document.id, document);
+    return document;
+  }
+
+  async getDocumentFile(id: number): Promise<DocumentFile | undefined> {
+    return this.documentFiles.get(id);
+  }
+
+  async deleteDocumentFile(id: number): Promise<boolean> {
+    return this.documentFiles.delete(id);
   }
 }
 
