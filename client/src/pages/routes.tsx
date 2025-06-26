@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,8 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { MapPin, Route, Clock, Truck, Plus, Search } from "lucide-react";
+import { Loader } from "@googlemaps/js-api-loader";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { GOOGLE_MAPS_CONFIG } from "@/config/maps";
 import type { Route as RouteType, InsertRoute } from "@shared/schema";
 
 export default function Routes() {
@@ -18,6 +20,12 @@ export default function Routes() {
   const [destination, setDestination] = useState("");
   const [routeName, setRouteName] = useState("");
   const [selectedRoute, setSelectedRoute] = useState<RouteType | null>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
+  const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer | null>(null);
+  const [geocoder, setGeocoder] = useState<google.maps.Geocoder | null>(null);
+  const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
 
   const { data: routes = [], isLoading } = useQuery({
     queryKey: ["/api/routes"],
@@ -56,26 +64,85 @@ export default function Routes() {
     },
   });
 
-  const geocodeAddress = async (address: string) => {
-    // Simulación de geocodificación - en producción usar Google Maps API
-    const mockCoordinates = {
-      "Miami, FL": { lat: 25.7617, lng: -80.1918 },
-      "Orlando, FL": { lat: 28.5383, lng: -81.3792 },
-      "Tampa, FL": { lat: 27.9506, lng: -82.4572 },
-      "Jacksonville, FL": { lat: 30.3322, lng: -81.6557 },
-      "Atlanta, GA": { lat: 33.7490, lng: -84.3880 },
-      "Charlotte, NC": { lat: 35.2271, lng: -80.8431 },
+  // Initialize Google Maps
+  useEffect(() => {
+    const initGoogleMaps = async () => {
+      try {
+        const loader = new Loader({
+          apiKey: GOOGLE_MAPS_CONFIG.apiKey,
+          version: "weekly",
+          libraries: GOOGLE_MAPS_CONFIG.libraries
+        });
+
+        await loader.load();
+        setIsGoogleMapsLoaded(true);
+
+        if (mapRef.current) {
+          const mapInstance = new google.maps.Map(mapRef.current, {
+            center: GOOGLE_MAPS_CONFIG.defaultCenter,
+            zoom: GOOGLE_MAPS_CONFIG.defaultZoom,
+            mapTypeControl: true,
+            streetViewControl: true,
+            fullscreenControl: true,
+          });
+
+          const directionsServiceInstance = new google.maps.DirectionsService();
+          const directionsRendererInstance = new google.maps.DirectionsRenderer({
+            draggable: true,
+            panel: document.getElementById("directions-panel") as HTMLElement,
+          });
+          const geocoderInstance = new google.maps.Geocoder();
+
+          directionsRendererInstance.setMap(mapInstance);
+
+          setMap(mapInstance);
+          setDirectionsService(directionsServiceInstance);
+          setDirectionsRenderer(directionsRendererInstance);
+          setGeocoder(geocoderInstance);
+        }
+      } catch (error) {
+        console.error("Error loading Google Maps:", error);
+        toast({
+          title: "Maps Error",
+          description: "Failed to load Google Maps. Using fallback mode.",
+          variant: "destructive",
+        });
+        setIsGoogleMapsLoaded(false);
+      }
     };
-    
-    const key = Object.keys(mockCoordinates).find(city => 
-      address.toLowerCase().includes(city.toLowerCase())
-    );
-    
-    if (key) {
-      return mockCoordinates[key as keyof typeof mockCoordinates];
+
+    initGoogleMaps();
+  }, [toast]);
+
+  const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number }> => {
+    if (!geocoder || !isGoogleMapsLoaded) {
+      // Fallback coordinates if Google Maps fails
+      return { lat: 25.7617, lng: -80.1918 };
     }
-    
-    // Coordenadas por defecto si no se encuentra
+
+    try {
+      const result = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
+        geocoder.geocode({ address }, (results, status) => {
+          if (status === "OK" && results) {
+            resolve(results);
+          } else {
+            reject(new Error(`Geocoding failed: ${status}`));
+          }
+        });
+      });
+
+      if (result.length > 0) {
+        const location = result[0].geometry.location;
+        return {
+          lat: location.lat(),
+          lng: location.lng(),
+        };
+      }
+    } catch (error) {
+      console.error("Geocoding error:", error);
+    }
+
+    // Fallback coordinates
     return { lat: 25.7617, lng: -80.1918 };
   };
 
@@ -90,36 +157,85 @@ export default function Routes() {
     }
 
     try {
-      const originCoords = await geocodeAddress(origin);
-      const destCoords = await geocodeAddress(destination);
-      
-      // Calcular distancia aproximada usando fórmula haversine
-      const distance = calculateDistance(
-        originCoords.lat, originCoords.lng,
-        destCoords.lat, destCoords.lng
-      );
-      
-      const estimatedDuration = Math.round(distance * 1.2); // Aproximadamente 1.2 horas por cada 100km
+      if (directionsService && directionsRenderer && isGoogleMapsLoaded) {
+        // Use Google Maps Directions API
+        const result = await new Promise<google.maps.DirectionsResult>((resolve, reject) => {
+          directionsService.route(
+            {
+              origin: origin,
+              destination: destination,
+              travelMode: google.maps.TravelMode.DRIVING,
+              unitSystem: google.maps.UnitSystem.METRIC,
+              avoidHighways: false,
+              avoidTolls: false,
+            },
+            (result, status) => {
+              if (status === "OK" && result) {
+                resolve(result);
+              } else {
+                reject(new Error(`Directions request failed: ${status}`));
+              }
+            }
+          );
+        });
 
-      const routeData: InsertRoute = {
-        name: routeName,
-        origin,
-        destination,
-        originLat: originCoords.lat,
-        originLng: originCoords.lng,
-        destinationLat: destCoords.lat,
-        destinationLng: destCoords.lng,
-        distance: Math.round(distance),
-        estimatedDuration,
-        driverId: 1, // Usuario actual
-        status: "planned",
-      };
+        // Display route on map
+        directionsRenderer.setDirections(result);
 
-      createRouteMutation.mutate(routeData);
+        const route = result.routes[0];
+        const leg = route.legs[0];
+        
+        const distance = Math.round(leg.distance?.value! / 1000); // Convert to km
+        const duration = Math.round(leg.duration?.value! / 60); // Convert to minutes
+
+        const routeData: InsertRoute = {
+          name: routeName,
+          origin: leg.start_address,
+          destination: leg.end_address,
+          originLat: leg.start_location.lat(),
+          originLng: leg.start_location.lng(),
+          destinationLat: leg.end_location.lat(),
+          destinationLng: leg.end_location.lng(),
+          distance,
+          estimatedDuration: duration,
+          driverId: 1,
+          status: "planned",
+        };
+
+        createRouteMutation.mutate(routeData);
+      } else {
+        // Fallback to geocoding method
+        const originCoords = await geocodeAddress(origin);
+        const destCoords = await geocodeAddress(destination);
+        
+        const distance = calculateDistance(
+          originCoords.lat, originCoords.lng,
+          destCoords.lat, destCoords.lng
+        );
+        
+        const estimatedDuration = Math.round(distance * 1.2);
+
+        const routeData: InsertRoute = {
+          name: routeName,
+          origin,
+          destination,
+          originLat: originCoords.lat,
+          originLng: originCoords.lng,
+          destinationLat: destCoords.lat,
+          destinationLng: destCoords.lng,
+          distance: Math.round(distance),
+          estimatedDuration,
+          driverId: 1,
+          status: "planned",
+        };
+
+        createRouteMutation.mutate(routeData);
+      }
     } catch (error) {
+      console.error("Route calculation error:", error);
       toast({
         title: "Error",
-        description: "Could not calculate route",
+        description: "Could not calculate route. Please try again.",
         variant: "destructive",
       });
     }
@@ -134,6 +250,23 @@ export default function Routes() {
               Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
+  };
+
+  const displayRouteOnMap = (route: RouteType) => {
+    if (!directionsService || !directionsRenderer || !isGoogleMapsLoaded) return;
+
+    directionsService.route(
+      {
+        origin: { lat: route.originLat!, lng: route.originLng! },
+        destination: { lat: route.destinationLat!, lng: route.destinationLng! },
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === "OK" && result) {
+          directionsRenderer.setDirections(result);
+        }
+      }
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -312,15 +445,63 @@ export default function Routes() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-96 bg-gray-100 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">
-                    Interactive map coming soon
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Will integrate with Google Maps API
-                  </p>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="lg:col-span-2">
+                  <div 
+                    ref={mapRef}
+                    className="h-96 w-full rounded-lg border"
+                    style={{ minHeight: '400px' }}
+                  />
+                  {!isGoogleMapsLoaded && (
+                    <div className="h-96 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">
+                          Loading Google Maps...
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="font-semibold">Existing Routes</h4>
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                      {Array.isArray(routes) && routes.length > 0 ? (
+                        (routes as RouteType[]).map((route: RouteType) => (
+                          <Card 
+                            key={route.id} 
+                            className="p-3 cursor-pointer hover:bg-accent transition-colors"
+                            onClick={() => displayRouteOnMap(route)}
+                          >
+                            <div className="space-y-1">
+                              <p className="font-medium text-sm">{route.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {route.origin} → {route.destination}
+                              </p>
+                              {route.distance && (
+                                <p className="text-xs text-muted-foreground">
+                                  {route.distance} km
+                                </p>
+                              )}
+                              <Badge size="sm" className={getStatusColor(route.status)}>
+                                {getStatusText(route.status)}
+                              </Badge>
+                            </div>
+                          </Card>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No routes available
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div id="directions-panel" className="text-xs bg-muted p-2 rounded max-h-40 overflow-y-auto">
+                    <p className="text-muted-foreground">
+                      Route directions will appear here when a route is calculated.
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>
