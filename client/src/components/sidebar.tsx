@@ -12,18 +12,11 @@ import {
   Package,
   FileText,
   Folder,
-  Plus,
-  ClipboardCheck,
   Menu,
   X
 } from "lucide-react";
 
 // Navigation options are dynamically defined based on user role
-
-const quickActions = [
-  { name: "New Shipment", href: "/shipments/new", icon: Plus },
-  { name: "Inspection", href: "/inspections/new", icon: ClipboardCheck },
-];
 
 export function Sidebar() {
   const [location] = useLocation();
@@ -63,22 +56,23 @@ export function Sidebar() {
 
   return (
     <aside className={cn(
-      "bg-white shadow-lg border-r border-gray-200 fixed h-full z-10 transition-all duration-300",
+      "bg-white shadow-xl border-r border-gray-200 fixed h-full z-10 transition-all duration-300 flex flex-col",
       isCollapsed ? "w-16" : "w-64"
     )}>
+      {/* Header */}
       <div className={cn(
-        "border-b border-gray-200 transition-all duration-300",
-        isCollapsed ? "p-3" : "p-6"
+        "border-b border-gray-200 transition-all duration-300 flex-shrink-0",
+        isCollapsed ? "p-3" : "p-4"
       )}>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm">
               <Truck className="w-6 h-6 text-white" />
             </div>
             {!isCollapsed && (
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Davali Freight</h1>
-                <p className="text-sm text-gray-500">Driver Portal</p>
+                <h1 className="text-lg font-bold text-gray-900">Davali Freight</h1>
+                <p className="text-xs text-gray-500">Management Portal</p>
               </div>
             )}
           </div>
@@ -86,90 +80,104 @@ export function Sidebar() {
             variant="ghost"
             size="icon"
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
           >
-            {isCollapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
+            {isCollapsed ? <Menu className="w-4 h-4" /> : <X className="w-4 h-4" />}
           </Button>
         </div>
       </div>
       
-      <nav className={cn("mt-6 transition-all duration-300", isCollapsed ? "px-2" : "px-3")}>
-        <div className="space-y-2">
+      {/* Navigation Menu */}
+      <nav className={cn("flex-1 overflow-y-auto", isCollapsed ? "px-2" : "px-3")}>
+        <div className="py-4 space-y-2">
           {navigation.map((item) => {
             const isActive = location === item.href;
-            const NavItem = (
-              <Link key={item.name} href={item.href}>
-                <div
-                  className={cn(
-                    "flex items-center rounded-lg transition-colors cursor-pointer",
-                    isCollapsed ? "px-2 py-2 justify-center" : "px-3 py-2",
-                    isActive
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-600 hover:bg-gray-100"
-                  )}
-                >
-                  <item.icon className={cn("w-5 h-5", !isCollapsed && "mr-3")} />
-                  {!isCollapsed && <span>{item.name}</span>}
-                </div>
-              </Link>
-            );
-
+            
             if (isCollapsed) {
               return (
                 <Tooltip key={item.name}>
                   <TooltipTrigger asChild>
-                    {NavItem}
+                    <Link href={item.href}>
+                      <div
+                        className={cn(
+                          "flex items-center justify-center h-10 w-10 rounded-lg transition-all duration-200 mx-auto",
+                          isActive
+                            ? "bg-blue-600 text-white shadow-md"
+                            : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+                        )}
+                      >
+                        <item.icon className="w-5 h-5" />
+                      </div>
+                    </Link>
                   </TooltipTrigger>
-                  <TooltipContent side="right">
+                  <TooltipContent side="right" className="ml-2">
                     <p>{item.name}</p>
                   </TooltipContent>
                 </Tooltip>
               );
             }
 
-            return NavItem;
+            return (
+              <Link key={item.name} href={item.href}>
+                <div
+                  className={cn(
+                    "flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group",
+                    isActive
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                  )}
+                >
+                  <item.icon className={cn("w-5 h-5 mr-3 transition-colors", 
+                    isActive ? "text-white" : "text-gray-500 group-hover:text-blue-600")} />
+                  <span className="font-medium text-sm">{item.name}</span>
+                </div>
+              </Link>
+            );
           })}
         </div>
-        
-        {!isCollapsed && (
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              Quick Actions
-            </p>
-            <div className="space-y-2">
-              {quickActions.map((item) => (
-                <Link key={item.name} href={item.href}>
-                  <div className="flex items-center px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
-                    <item.icon className="w-5 h-5 mr-3" />
-                    <span>{item.name}</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {isCollapsed && (
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <div className="space-y-2">
-              {quickActions.map((item) => (
-                <Tooltip key={item.name}>
-                  <TooltipTrigger asChild>
-                    <Link href={item.href}>
-                      <div className="flex items-center px-2 py-2 justify-center rounded-lg text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
-                        <item.icon className="w-5 h-5" />
-                      </div>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    <p>{item.name}</p>
-                  </TooltipContent>
-                </Tooltip>
-              ))}
-            </div>
-          </div>
-        )}
       </nav>
+
+      {/* User Info Footer */}
+      {!isCollapsed && user && (
+        <div className="flex-shrink-0 border-t border-gray-200 p-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center">
+              <span className="text-white text-sm font-medium">
+                {user.name?.charAt(0) || 'U'}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {user.name}
+              </p>
+              <p className="text-xs text-gray-500">
+                {isAdmin ? "Administrator" : "Driver"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Collapsed User Info */}
+      {isCollapsed && user && (
+        <div className="flex-shrink-0 border-t border-gray-200 p-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center mx-auto cursor-pointer">
+                <span className="text-white text-sm font-medium">
+                  {user.name?.charAt(0) || 'U'}
+                </span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="ml-2">
+              <div>
+                <p className="font-medium">{user.name}</p>
+                <p className="text-xs text-gray-400">{isAdmin ? "Administrator" : "Driver"}</p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      )}
     </aside>
   );
 }
