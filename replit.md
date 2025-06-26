@@ -114,10 +114,17 @@ Changelog:
 - June 24, 2025. Implemented document management system with Bill of Lading uploads
 - June 24, 2025. Added automatic file storage by driver with base64 encoding
 - June 24, 2025. Integrated fuel receipt uploads from expenses report
+- June 26, 2025. Implemented role-based access control system (admin vs driver)
+- June 26, 2025. Added route planning system with origin/destination selection
+- June 26, 2025. Created interactive route management with distance calculation
 ```
 
 ## User Preferences
 
 ```
 Preferred communication style: Simple, everyday language.
+Access control requirements: 
+- Admin users can access all features
+- Regular users (drivers) limited to expenses reports, Bill of Lading uploads, and route planning
+- Spanish language interface preferred
 ```

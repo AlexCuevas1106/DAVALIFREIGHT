@@ -7,6 +7,8 @@ import {
   inspectionReports,
   documents,
   activityLogs,
+  documentFiles,
+  routes,
   type Driver,
   type InsertDriver,
   type Vehicle,
@@ -22,6 +24,10 @@ import {
   type InsertDocument,
   type ActivityLog,
   type InsertActivityLog,
+  type DocumentFile,
+  type InsertDocumentFile,
+  type Route,
+  type InsertRoute,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -75,6 +81,13 @@ export interface IStorage {
   createDocumentFile(document: InsertDocumentFile): Promise<DocumentFile>;
   getDocumentFile(id: number): Promise<DocumentFile | undefined>;
   deleteDocumentFile(id: number): Promise<boolean>;
+  
+  // Route operations
+  getRoutes(driverId?: number): Promise<Route[]>;
+  createRoute(route: InsertRoute): Promise<Route>;
+  getRoute(id: number): Promise<Route | undefined>;
+  updateRoute(id: number, updates: Partial<Route>): Promise<Route | undefined>;
+  deleteRoute(id: number): Promise<boolean>;
 }
 
 
@@ -296,6 +309,7 @@ export class MemStorage implements IStorage {
   private documents: Map<number, Document> = new Map();
   private activityLogs: Map<number, ActivityLog> = new Map();
   private documentFiles: Map<number, DocumentFile> = new Map();
+  private routes: Map<number, Route> = new Map();
   
   private currentDriverId = 1;
   private currentVehicleId = 1;
@@ -306,6 +320,7 @@ export class MemStorage implements IStorage {
   private currentDocumentId = 1;
   private currentActivityId = 1;
   private currentDocumentFileId = 1;
+  private currentRouteId = 1;
 
   constructor() {
     this.seedData();
@@ -716,6 +731,51 @@ export class MemStorage implements IStorage {
 
   async deleteDocumentFile(id: number): Promise<boolean> {
     return this.documentFiles.delete(id);
+  }
+
+  // Route operations
+  async getRoutes(driverId?: number): Promise<Route[]> {
+    const allRoutes = Array.from(this.routes.values());
+    return driverId ? allRoutes.filter(route => route.driverId === driverId) : allRoutes;
+  }
+
+  async createRoute(insertRoute: InsertRoute): Promise<Route> {
+    const route: Route = {
+      id: this.currentRouteId++,
+      name: insertRoute.name,
+      origin: insertRoute.origin,
+      destination: insertRoute.destination,
+      originLat: insertRoute.originLat,
+      originLng: insertRoute.originLng,
+      destinationLat: insertRoute.destinationLat,
+      destinationLng: insertRoute.destinationLng,
+      distance: insertRoute.distance || null,
+      estimatedDuration: insertRoute.estimatedDuration || null,
+      driverId: insertRoute.driverId || null,
+      shipmentId: insertRoute.shipmentId || null,
+      status: insertRoute.status || "planned",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.routes.set(route.id, route);
+    return route;
+  }
+
+  async getRoute(id: number): Promise<Route | undefined> {
+    return this.routes.get(id);
+  }
+
+  async updateRoute(id: number, updates: Partial<Route>): Promise<Route | undefined> {
+    const route = this.routes.get(id);
+    if (!route) return undefined;
+    
+    const updatedRoute = { ...route, ...updates, updatedAt: new Date() };
+    this.routes.set(id, updatedRoute);
+    return updatedRoute;
+  }
+
+  async deleteRoute(id: number): Promise<boolean> {
+    return this.routes.delete(id);
   }
 }
 

@@ -116,6 +116,25 @@ export const documentFiles = pgTable("document_files", {
   fileData: text("file_data"), // Base64 encoded file data
 });
 
+// Tabla para rutas de transporte
+export const routes = pgTable("routes", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  origin: text("origin").notNull(),
+  destination: text("destination").notNull(),
+  originLat: real("origin_lat").notNull(),
+  originLng: real("origin_lng").notNull(),
+  destinationLat: real("destination_lat").notNull(),
+  destinationLng: real("destination_lng").notNull(),
+  distance: real("distance"), // en kilómetros
+  estimatedDuration: integer("estimated_duration"), // en minutos
+  driverId: integer("driver_id").references(() => drivers.id),
+  shipmentId: integer("shipment_id").references(() => shipments.id),
+  status: text("status").notNull().default("planned"), // 'planned', 'active', 'completed'
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertDriverSchema = createInsertSchema(drivers).omit({
   id: true,
@@ -171,6 +190,12 @@ export const insertDocumentFileSchema = createInsertSchema(documentFiles).omit({
   uploadDate: true,
 });
 
+export const insertRouteSchema = createInsertSchema(routes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Driver = typeof drivers.$inferSelect;
 export type InsertDriver = z.infer<typeof insertDriverSchema>;
@@ -189,3 +214,5 @@ export type ActivityLog = typeof activityLogs.$inferSelect;
 export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 export type DocumentFile = typeof documentFiles.$inferSelect;
 export type InsertDocumentFile = z.infer<typeof insertDocumentFileSchema>;
+export type Route = typeof routes.$inferSelect;
+export type InsertRoute = z.infer<typeof insertRouteSchema>;

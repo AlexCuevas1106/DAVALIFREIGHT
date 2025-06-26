@@ -10,10 +10,23 @@ import {
   insertInspectionReportSchema,
   insertDocumentSchema,
   insertActivityLogSchema,
+  insertRouteSchema,
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+
+  // Auth endpoints
+  app.get('/api/auth/user', async (req, res) => {
+    try {
+      // Simulamos que siempre devolvemos el primer usuario como logueado
+      const user = await storage.getDriver(1);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
 
   // Document management endpoints
   app.get("/api/documents", async (req, res) => {
@@ -401,6 +414,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch dashboard data" });
+    }
+  });
+
+  // Routes endpoints
+  app.get("/api/routes", async (req, res) => {
+    try {
+      const driverId = req.query.driverId ? parseInt(req.query.driverId as string) : undefined;
+      const routes = await storage.getRoutes(driverId);
+      res.json(routes);
+    } catch (error) {
+      console.error("Error fetching routes:", error);
+      res.status(500).json({ error: "Failed to fetch routes" });
+    }
+  });
+
+  app.post("/api/routes", async (req, res) => {
+    try {
+      const validatedData = insertRouteSchema.parse(req.body);
+      const route = await storage.createRoute(validatedData);
+      res.json(route);
+    } catch (error) {
+      console.error("Error creating route:", error);
+      res.status(500).json({ error: "Failed to create route" });
+    }
+  });
+
+  app.get("/api/routes/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const route = await storage.getRoute(id);
+      if (!route) {
+        return res.status(404).json({ error: "Route not found" });
+      }
+      res.json(route);
+    } catch (error) {
+      console.error("Error fetching route:", error);
+      res.status(500).json({ error: "Failed to fetch route" });
+    }
+  });
+
+  app.put("/api/routes/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      const route = await storage.updateRoute(id, updates);
+      if (!route) {
+        return res.status(404).json({ error: "Route not found" });
+      }
+      res.json(route);
+    } catch (error) {
+      console.error("Error updating route:", error);
+      res.status(500).json({ error: "Failed to update route" });
+    }
+  });
+
+  app.delete("/api/routes/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteRoute(id);
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: "Route not found" });
+      }
+    } catch (error) {
+      console.error("Error deleting route:", error);
+      res.status(500).json({ error: "Failed to delete route" });
     }
   });
 

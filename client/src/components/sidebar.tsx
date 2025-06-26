@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Truck,
   BarChart3,
@@ -17,15 +18,7 @@ import {
   X
 } from "lucide-react";
 
-const navigation = [
-  { name: "Dashboard", href: "/", icon: BarChart3 },
-  { name: "Drivers", href: "/drivers", icon: Users },
-  { name: "Vehicles", href: "/vehicles", icon: Truck },
-  { name: "Routes", href: "/routes", icon: Route },
-  { name: "Shipments", href: "/shipments", icon: Package },
-  { name: "Expenses Report", href: "/expenses-report", icon: FileText },
-  { name: "Documents", href: "/documents", icon: Folder },
-];
+// Las opciones de navegación se definen dinámicamente basadas en el rol del usuario
 
 const quickActions = [
   { name: "New Shipment", href: "/shipments/new", icon: Plus },
@@ -35,6 +28,28 @@ const quickActions = [
 export function Sidebar() {
   const [location] = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { user, isAdmin } = useAuth();
+
+  // Navegación para usuarios regulares (solo expenses y documents)
+  const driverNavigation = [
+    { name: "Dashboard", href: "/", icon: BarChart3 },
+    { name: "Gastos", href: "/expenses-report", icon: FileText },
+    { name: "Documentos", href: "/documents", icon: Folder },
+    { name: "Rutas", href: "/routes", icon: Route },
+  ];
+
+  // Navegación completa para administradores
+  const adminNavigation = [
+    { name: "Dashboard", href: "/", icon: BarChart3 },
+    { name: "Documentos", href: "/documents", icon: Folder },
+    { name: "Gastos", href: "/expenses-report", icon: FileText },
+    { name: "Rutas", href: "/routes", icon: Route },
+    { name: "Vehículos", href: "/vehicles", icon: Truck },
+    { name: "Conductores", href: "/drivers", icon: Users },
+    { name: "Envíos", href: "/shipments", icon: Package },
+  ];
+
+  const navigation = isAdmin ? adminNavigation : driverNavigation;
 
   // Update document class to control main content margin
   useEffect(() => {

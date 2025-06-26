@@ -3,19 +3,40 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Sidebar } from "@/components/sidebar";
 import Dashboard from "@/pages/dashboard";
 import ExpensesReport from "@/pages/expenses-report";
 import Documents from "@/pages/documents";
+import Routes from "@/pages/routes";
 import NotFound from "@/pages/not-found";
+import { useAuth } from "@/hooks/useAuth";
 
 function Router() {
+  const { isAdmin } = useAuth();
+
   return (
-    <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/expenses-report" component={ExpensesReport} />
-      <Route path="/documents" component={Documents} />
-      <Route component={NotFound} />
-    </Switch>
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar />
+      <main className="flex-1 overflow-auto">
+        <Switch>
+          <Route path="/" component={Dashboard} />
+          <Route path="/expenses-report" component={ExpensesReport} />
+          <Route path="/documents" component={Documents} />
+          <Route path="/routes" component={Routes} />
+          {/* Rutas solo para administradores */}
+          {isAdmin && (
+            <>
+              <Route path="/vehicles" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Vehículos (Próximamente)</h1></div>} />
+              <Route path="/drivers" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Conductores (Próximamente)</h1></div>} />
+              <Route path="/shipments" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Envíos (Próximamente)</h1></div>} />
+              <Route path="/reports" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Reportes (Próximamente)</h1></div>} />
+              <Route path="/settings" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Configuración (Próximamente)</h1></div>} />
+            </>
+          )}
+          <Route component={NotFound} />
+        </Switch>
+      </main>
+    </div>
   );
 }
 
@@ -23,8 +44,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
         <Router />
+        <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
   );
