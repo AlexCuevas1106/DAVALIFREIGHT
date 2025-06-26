@@ -23,14 +23,14 @@ function Router() {
           <Route path="/expenses-report" component={ExpensesReport} />
           <Route path="/documents" component={Documents} />
           <Route path="/routes" component={Routes} />
-          {/* Rutas solo para administradores */}
+          {/* Routes only for administrators */}
           {isAdmin && (
             <>
-              <Route path="/vehicles" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Vehículos (Próximamente)</h1></div>} />
-              <Route path="/drivers" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Conductores (Próximamente)</h1></div>} />
-              <Route path="/shipments" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Envíos (Próximamente)</h1></div>} />
-              <Route path="/reports" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Reportes (Próximamente)</h1></div>} />
-              <Route path="/settings" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Configuración (Próximamente)</h1></div>} />
+              <Route path="/vehicles" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Vehicles (Coming Soon)</h1></div>} />
+              <Route path="/drivers" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Drivers (Coming Soon)</h1></div>} />
+              <Route path="/shipments" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Shipments (Coming Soon)</h1></div>} />
+              <Route path="/reports" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Reports (Coming Soon)</h1></div>} />
+              <Route path="/settings" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Settings (Coming Soon)</h1></div>} />
             </>
           )}
           <Route component={NotFound} />

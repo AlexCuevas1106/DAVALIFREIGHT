@@ -39,8 +39,8 @@ export default function Routes() {
     },
     onSuccess: () => {
       toast({
-        title: "Ruta creada",
-        description: "La ruta se ha creado exitosamente",
+        title: "Route created",
+        description: "The route has been created successfully",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
       setOrigin("");
@@ -50,7 +50,7 @@ export default function Routes() {
     onError: (error) => {
       toast({
         title: "Error",
-        description: "No se pudo crear la ruta",
+        description: "Could not create route",
         variant: "destructive",
       });
     },
@@ -82,8 +82,8 @@ export default function Routes() {
   const calculateRoute = async () => {
     if (!origin || !destination || !routeName) {
       toast({
-        title: "Campos requeridos",
-        description: "Por favor completa todos los campos",
+        title: "Required fields",
+        description: "Please complete all fields",
         variant: "destructive",
       });
       return;
@@ -119,7 +119,7 @@ export default function Routes() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo calcular la ruta",
+        description: "Could not calculate route",
         variant: "destructive",
       });
     }
@@ -147,10 +147,10 @@ export default function Routes() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "planned": return "Planificada";
-      case "active": return "Activa";
-      case "completed": return "Completada";
-      default: return "Planificada";
+      case "planned": return "Planned";
+      case "active": return "Active";
+      case "completed": return "Completed";
+      default: return "Planned";
     }
   };
 
@@ -166,22 +166,22 @@ export default function Routes() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Rutas de Transporte</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Transportation Routes</h1>
           <p className="text-muted-foreground">
-            Planifica y gestiona las rutas de tus envíos
+            Plan and manage your shipment routes
           </p>
         </div>
         <Button onClick={() => setSelectedRoute(null)} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
-          Nueva Ruta
+          New Route
         </Button>
       </div>
 
       <Tabs defaultValue="create" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="create">Crear Ruta</TabsTrigger>
-          <TabsTrigger value="routes">Rutas Existentes</TabsTrigger>
-          <TabsTrigger value="map">Mapa</TabsTrigger>
+          <TabsTrigger value="create">Create Route</TabsTrigger>
+          <TabsTrigger value="routes">Existing Routes</TabsTrigger>
+          <TabsTrigger value="map">Map</TabsTrigger>
         </TabsList>
 
         <TabsContent value="create" className="space-y-4">
@@ -189,37 +189,37 @@ export default function Routes() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Route className="h-5 w-5" />
-                Planificar Nueva Ruta
+                Plan New Route
               </CardTitle>
               <CardDescription>
-                Ingresa el origen y destino para calcular la mejor ruta
+                Enter origin and destination to calculate the best route
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="routeName">Nombre de la Ruta</Label>
+                  <Label htmlFor="routeName">Route Name</Label>
                   <Input
                     id="routeName"
-                    placeholder="Ej: Miami - Orlando Express"
+                    placeholder="e.g., Miami - Orlando Express"
                     value={routeName}
                     onChange={(e) => setRouteName(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="origin">Origen</Label>
+                  <Label htmlFor="origin">Origin</Label>
                   <Input
                     id="origin"
-                    placeholder="Ej: Miami, FL"
+                    placeholder="e.g., Miami, FL"
                     value={origin}
                     onChange={(e) => setOrigin(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="destination">Destino</Label>
+                  <Label htmlFor="destination">Destination</Label>
                   <Input
                     id="destination"
-                    placeholder="Ej: Orlando, FL"
+                    placeholder="e.g., Orlando, FL"
                     value={destination}
                     onChange={(e) => setDestination(e.target.value)}
                   />
@@ -234,12 +234,12 @@ export default function Routes() {
                 {createRouteMutation.isPending ? (
                   <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Calculando...
+                    Calculating...
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <Search className="h-4 w-4" />
-                    Calcular Ruta
+                    Calculate Route
                   </div>
                 )}
               </Button>
@@ -253,9 +253,9 @@ export default function Routes() {
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-8">
                   <Route className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No hay rutas</h3>
+                  <h3 className="text-lg font-semibold mb-2">No routes found</h3>
                   <p className="text-muted-foreground text-center">
-                    Crea tu primera ruta para comenzar a planificar tus envíos
+                    Create your first route to start planning your shipments
                   </p>
                 </CardContent>
               </Card>
@@ -306,9 +306,9 @@ export default function Routes() {
         <TabsContent value="map" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Mapa de Rutas</CardTitle>
+              <CardTitle>Route Map</CardTitle>
               <CardDescription>
-                Visualiza todas las rutas en el mapa interactivo
+                Visualize all routes on the interactive map
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -316,10 +316,10 @@ export default function Routes() {
                 <div className="text-center">
                   <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground">
-                    Mapa interactivo próximamente
+                    Interactive map coming soon
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Se integrará con Google Maps API
+                    Will integrate with Google Maps API
                   </p>
                 </div>
               </div>

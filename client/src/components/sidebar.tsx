@@ -18,7 +18,7 @@ import {
   X
 } from "lucide-react";
 
-// Las opciones de navegación se definen dinámicamente basadas en el rol del usuario
+// Navigation options are dynamically defined based on user role
 
 const quickActions = [
   { name: "New Shipment", href: "/shipments/new", icon: Plus },
@@ -30,25 +30,26 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { user, isAdmin } = useAuth();
 
-  // Navegación para usuarios regulares (solo expenses y documents)
+  // Navigation for regular users (drivers - limited access)
   const driverNavigation = [
     { name: "Dashboard", href: "/", icon: BarChart3 },
-    { name: "Gastos", href: "/expenses-report", icon: FileText },
-    { name: "Documentos", href: "/documents", icon: Folder },
-    { name: "Rutas", href: "/routes", icon: Route },
+    { name: "Expenses", href: "/expenses-report", icon: FileText },
+    { name: "Documents", href: "/documents", icon: Folder },
+    { name: "Routes", href: "/routes", icon: Route },
   ];
 
-  // Navegación completa para administradores
+  // Full navigation for administrators
   const adminNavigation = [
     { name: "Dashboard", href: "/", icon: BarChart3 },
-    { name: "Documentos", href: "/documents", icon: Folder },
-    { name: "Gastos", href: "/expenses-report", icon: FileText },
-    { name: "Rutas", href: "/routes", icon: Route },
-    { name: "Vehículos", href: "/vehicles", icon: Truck },
-    { name: "Conductores", href: "/drivers", icon: Users },
-    { name: "Envíos", href: "/shipments", icon: Package },
+    { name: "Documents", href: "/documents", icon: Folder },
+    { name: "Expenses", href: "/expenses-report", icon: FileText },
+    { name: "Routes", href: "/routes", icon: Route },
+    { name: "Vehicles", href: "/vehicles", icon: Truck },
+    { name: "Drivers", href: "/drivers", icon: Users },
+    { name: "Shipments", href: "/shipments", icon: Package },
   ];
 
+  // Select navigation based on user role
   const navigation = isAdmin ? adminNavigation : driverNavigation;
 
   // Update document class to control main content margin

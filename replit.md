@@ -126,5 +126,5 @@ Preferred communication style: Simple, everyday language.
 Access control requirements: 
 - Admin users can access all features
 - Regular users (drivers) limited to expenses reports, Bill of Lading uploads, and route planning
-- Spanish language interface preferred
+- English language interface preferred
 ```
