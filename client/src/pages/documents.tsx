@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Sidebar } from "@/components/sidebar";
+
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,19 +51,13 @@ export default function Documents() {
   // Fetch documents
   const { data: documents = [], isLoading } = useQuery({
     queryKey: ['/api/documents', driver.id],
-    queryFn: () => apiRequest(`/api/documents?driverId=${driver.id}`)
+    queryFn: () => apiRequest(`/api/documents?driverId=${driver.id}`),
   });
 
   // Upload mutation
   const uploadMutation = useMutation({
     mutationFn: async (payload: any) => {
-      return apiRequest('/api/documents/upload', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      return apiRequest('/api/documents/upload', payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
@@ -246,10 +240,7 @@ export default function Documents() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Sidebar />
-      
-      <main>
+    <div className="p-6 space-y-6 ml-64">
         <Header 
           driver={driver}
           status="on_duty"
@@ -409,7 +400,6 @@ export default function Documents() {
             </div>
           </div>
         </div>
-      </main>
     </div>
   );
 }
