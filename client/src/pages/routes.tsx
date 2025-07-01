@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -8,10 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { MapPin, Route, Clock, Truck, Plus, Search } from "lucide-react";
-import { Loader } from "@googlemaps/js-api-loader";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import * as tt from '@tomtom-international/web-sdk-maps';
+import * as ttServices from '@tomtom-international/web-sdk-services';
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_MAPS_CONFIG } from "@/config/maps";
+import { TOMTOM_CONFIG } from "@/config/maps";
 import type { Route as RouteType, InsertRoute } from "@shared/schema";
 
 export default function Routes() {
@@ -20,11 +22,8 @@ export default function Routes() {
   const [destination, setDestination] = useState("");
   const [routeName, setRouteName] = useState("");
   const [selectedRoute, setSelectedRoute] = useState<RouteType | null>(null);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
-  const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer | null>(null);
-  const [geocoder, setGeocoder] = useState<google.maps.Geocoder | null>(null);
-  const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
+  const [map, setMap] = useState<tt.Map | null>(null);
+  const [isTomTomLoaded, setIsTomTomLoaded] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
 
   const { data: routes = [], isLoading } = useQuery({
@@ -48,7 +47,7 @@ export default function Routes() {
     onSuccess: () => {
       toast({
         title: "Route created",
-        description: "The route has been created successfully",
+        description: "The truck route has been created successfully",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
       setOrigin("");
@@ -64,78 +63,74 @@ export default function Routes() {
     },
   });
 
-  // Initialize Google Maps
+  // Initialize TomTom Map
   useEffect(() => {
-    const initGoogleMaps = async () => {
+    const initTomTomMap = async () => {
       try {
-        const loader = new Loader({
-          apiKey: GOOGLE_MAPS_CONFIG.apiKey,
-          version: "weekly",
-          libraries: GOOGLE_MAPS_CONFIG.libraries
-        });
-
-        await loader.load();
-        setIsGoogleMapsLoaded(true);
-
-        if (mapRef.current) {
-          const mapInstance = new google.maps.Map(mapRef.current, {
-            center: GOOGLE_MAPS_CONFIG.defaultCenter,
-            zoom: GOOGLE_MAPS_CONFIG.defaultZoom,
-            mapTypeControl: true,
-            streetViewControl: true,
-            fullscreenControl: true,
+        if (mapRef.current && TOMTOM_CONFIG.apiKey !== "YOUR_TOMTOM_API_KEY_HERE") {
+          const mapInstance = tt.map({
+            key: TOMTOM_CONFIG.apiKey,
+            container: mapRef.current,
+            center: [TOMTOM_CONFIG.defaultCenter.lng, TOMTOM_CONFIG.defaultCenter.lat],
+            zoom: TOMTOM_CONFIG.defaultZoom,
+            stylesVisibility: {
+              trafficIncidents: true,
+              trafficFlow: true,
+            },
           });
-
-          const directionsServiceInstance = new google.maps.DirectionsService();
-          const directionsRendererInstance = new google.maps.DirectionsRenderer({
-            draggable: true,
-            panel: document.getElementById("directions-panel") as HTMLElement,
-          });
-          const geocoderInstance = new google.maps.Geocoder();
-
-          directionsRendererInstance.setMap(mapInstance);
 
           setMap(mapInstance);
-          setDirectionsService(directionsServiceInstance);
-          setDirectionsRenderer(directionsRendererInstance);
-          setGeocoder(geocoderInstance);
+          setIsTomTomLoaded(true);
+
+          // Add navigation controls
+          mapInstance.addControl(new tt.NavigationControl());
+          mapInstance.addControl(new tt.FullscreenControl());
+        } else {
+          setIsTomTomLoaded(false);
+          toast({
+            title: "TomTom Configuration",
+            description: "Please add your TomTom API key to use mapping features",
+            variant: "destructive",
+          });
         }
       } catch (error) {
-        console.error("Error loading Google Maps:", error);
+        console.error("Error loading TomTom Maps:", error);
         toast({
           title: "Maps Error",
-          description: "Failed to load Google Maps. Using fallback mode.",
+          description: "Failed to load TomTom Maps. Please check your API key.",
           variant: "destructive",
         });
-        setIsGoogleMapsLoaded(false);
+        setIsTomTomLoaded(false);
       }
     };
 
-    initGoogleMaps();
+    initTomTomMap();
+
+    return () => {
+      if (map) {
+        map.remove();
+      }
+    };
   }, [toast]);
 
   const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number }> => {
-    if (!geocoder || !isGoogleMapsLoaded) {
-      // Fallback coordinates if Google Maps fails
+    if (!isTomTomLoaded || TOMTOM_CONFIG.apiKey === "YOUR_TOMTOM_API_KEY_HERE") {
+      // Fallback coordinates if TomTom fails
       return { lat: 25.7617, lng: -80.1918 };
     }
 
     try {
-      const result = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
-        geocoder.geocode({ address }, (results, status) => {
-          if (status === "OK" && results) {
-            resolve(results);
-          } else {
-            reject(new Error(`Geocoding failed: ${status}`));
-          }
-        });
+      const response = await ttServices.services.geocode({
+        key: TOMTOM_CONFIG.apiKey,
+        query: address,
+        limit: 1,
       });
 
-      if (result.length > 0) {
-        const location = result[0].geometry.location;
+      if (response.results && response.results.length > 0) {
+        const location = response.results[0].position;
         return {
-          lat: location.lat(),
-          lng: location.lng(),
+          lat: location.lat,
+          lng: location.lon,
         };
       }
     } catch (error) {
@@ -146,7 +141,7 @@ export default function Routes() {
     return { lat: 25.7617, lng: -80.1918 };
   };
 
-  const calculateRoute = async () => {
+  const calculateTruckRoute = async () => {
     if (!origin || !destination || !routeName) {
       toast({
         title: "Required fields",
@@ -157,54 +152,113 @@ export default function Routes() {
     }
 
     try {
-      if (directionsService && directionsRenderer && isGoogleMapsLoaded) {
-        // Use Google Maps Directions API
-        const result = await new Promise<google.maps.DirectionsResult>((resolve, reject) => {
-          directionsService.route(
-            {
-              origin: origin,
-              destination: destination,
-              travelMode: google.maps.TravelMode.DRIVING,
-              unitSystem: google.maps.UnitSystem.METRIC,
-              avoidHighways: false,
-              avoidTolls: false,
-            },
-            (result, status) => {
-              if (status === "OK" && result) {
-                resolve(result);
-              } else {
-                reject(new Error(`Directions request failed: ${status}`));
-              }
-            }
-          );
+      if (isTomTomLoaded && TOMTOM_CONFIG.apiKey !== "YOUR_TOMTOM_API_KEY_HERE") {
+        // Get coordinates for origin and destination
+        const originCoords = await geocodeAddress(origin);
+        const destCoords = await geocodeAddress(destination);
+
+        // Calculate truck route using TomTom Routing API
+        const routeResponse = await ttServices.services.calculateRoute({
+          key: TOMTOM_CONFIG.apiKey,
+          locations: [
+            [originCoords.lng, originCoords.lat],
+            [destCoords.lng, destCoords.lat]
+          ],
+          travelMode: 'truck',
+          vehicleMaxSpeed: TOMTOM_CONFIG.truckOptions.vehicleMaxSpeed,
+          vehicleWeight: TOMTOM_CONFIG.truckOptions.vehicleWeight,
+          vehicleAxleWeight: TOMTOM_CONFIG.truckOptions.vehicleAxleWeight,
+          vehicleLength: TOMTOM_CONFIG.truckOptions.vehicleLength,
+          vehicleWidth: TOMTOM_CONFIG.truckOptions.vehicleWidth,
+          vehicleHeight: TOMTOM_CONFIG.truckOptions.vehicleHeight,
+          vehicleCommercial: TOMTOM_CONFIG.truckOptions.vehicleCommercial,
+          vehicleLoadType: TOMTOM_CONFIG.truckOptions.vehicleLoadType,
+          traffic: true,
+          routeType: 'eco', // Eco-friendly routing for trucks
+          instructionsType: 'text',
         });
 
-        // Display route on map
-        directionsRenderer.setDirections(result);
+        if (routeResponse.routes && routeResponse.routes.length > 0) {
+          const route = routeResponse.routes[0];
+          const summary = route.summary;
+          
+          const distance = Math.round(summary.lengthInMeters / 1000); // Convert to km
+          const duration = Math.round(summary.travelTimeInSeconds / 60); // Convert to minutes
 
-        const route = result.routes[0];
-        const leg = route.legs[0];
-        
-        const distance = Math.round(leg.distance?.value! / 1000); // Convert to km
-        const duration = Math.round(leg.duration?.value! / 60); // Convert to minutes
+          // Display route on map
+          if (map) {
+            // Clear existing markers and routes
+            map.getMarkers().forEach(marker => marker.remove());
+            map.getLayers().forEach(layer => {
+              if (layer.getId && layer.getId().includes('route')) {
+                map.removeLayer(layer);
+              }
+            });
 
-        const routeData: InsertRoute = {
-          name: routeName,
-          origin: leg.start_address,
-          destination: leg.end_address,
-          originLat: leg.start_location.lat(),
-          originLng: leg.start_location.lng(),
-          destinationLat: leg.end_location.lat(),
-          destinationLng: leg.end_location.lng(),
-          distance,
-          estimatedDuration: duration,
-          driverId: 1,
-          status: "planned",
-        };
+            // Add origin marker
+            new tt.Marker({ color: 'green' })
+              .setLngLat([originCoords.lng, originCoords.lat])
+              .setPopup(new tt.Popup().setHTML(`<strong>Origin:</strong><br>${origin}`))
+              .addTo(map);
 
-        createRouteMutation.mutate(routeData);
+            // Add destination marker
+            new tt.Marker({ color: 'red' })
+              .setLngLat([destCoords.lng, destCoords.lat])
+              .setPopup(new tt.Popup().setHTML(`<strong>Destination:</strong><br>${destination}`))
+              .addTo(map);
+
+            // Add route line
+            const routeGeoJson = route.legs[0].points.map(point => [point.longitude, point.latitude]);
+            
+            map.addLayer({
+              'id': 'truck-route',
+              'type': 'line',
+              'source': {
+                'type': 'geojson',
+                'data': {
+                  'type': 'Feature',
+                  'properties': {},
+                  'geometry': {
+                    'type': 'LineString',
+                    'coordinates': routeGeoJson
+                  }
+                }
+              },
+              'layout': {
+                'line-join': 'round',
+                'line-cap': 'round'
+              },
+              'paint': {
+                'line-color': '#FF6B35',
+                'line-width': 6,
+                'line-opacity': 0.8
+              }
+            });
+
+            // Fit map to route bounds
+            const bounds = new tt.LngLatBounds();
+            routeGeoJson.forEach(coord => bounds.extend(coord));
+            map.fitBounds(bounds, { padding: 50 });
+          }
+
+          const routeData: InsertRoute = {
+            name: routeName,
+            origin: origin,
+            destination: destination,
+            originLat: originCoords.lat,
+            originLng: originCoords.lng,
+            destinationLat: destCoords.lat,
+            destinationLng: destCoords.lng,
+            distance,
+            estimatedDuration: duration,
+            driverId: 1,
+            status: "planned",
+          };
+
+          createRouteMutation.mutate(routeData);
+        }
       } else {
-        // Fallback to geocoding method
+        // Fallback to basic geocoding method
         const originCoords = await geocodeAddress(origin);
         const destCoords = await geocodeAddress(destination);
         
@@ -213,7 +267,7 @@ export default function Routes() {
           destCoords.lat, destCoords.lng
         );
         
-        const estimatedDuration = Math.round(distance * 1.2);
+        const estimatedDuration = Math.round(distance * 1.5); // Slower for trucks
 
         const routeData: InsertRoute = {
           name: routeName,
@@ -235,7 +289,7 @@ export default function Routes() {
       console.error("Route calculation error:", error);
       toast({
         title: "Error",
-        description: "Could not calculate route. Please try again.",
+        description: "Could not calculate truck route. Please try again.",
         variant: "destructive",
       });
     }
@@ -252,21 +306,81 @@ export default function Routes() {
     return R * c;
   };
 
-  const displayRouteOnMap = (route: RouteType) => {
-    if (!directionsService || !directionsRenderer || !isGoogleMapsLoaded) return;
+  const displayRouteOnMap = async (route: RouteType) => {
+    if (!map || !isTomTomLoaded) return;
 
-    directionsService.route(
-      {
-        origin: { lat: route.originLat!, lng: route.originLng! },
-        destination: { lat: route.destinationLat!, lng: route.destinationLng! },
-        travelMode: google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        if (status === "OK" && result) {
-          directionsRenderer.setDirections(result);
+    try {
+      // Clear existing markers and routes
+      map.getMarkers().forEach(marker => marker.remove());
+      map.getLayers().forEach(layer => {
+        if (layer.getId && layer.getId().includes('route')) {
+          map.removeLayer(layer);
         }
+      });
+
+      // Add markers
+      new tt.Marker({ color: 'green' })
+        .setLngLat([route.originLng!, route.originLat!])
+        .setPopup(new tt.Popup().setHTML(`<strong>Origin:</strong><br>${route.origin}`))
+        .addTo(map);
+
+      new tt.Marker({ color: 'red' })
+        .setLngLat([route.destinationLng!, route.destinationLat!])
+        .setPopup(new tt.Popup().setHTML(`<strong>Destination:</strong><br>${route.destination}`))
+        .addTo(map);
+
+      // Calculate and display route
+      const routeResponse = await ttServices.services.calculateRoute({
+        key: TOMTOM_CONFIG.apiKey,
+        locations: [
+          [route.originLng!, route.originLat!],
+          [route.destinationLng!, route.destinationLat!]
+        ],
+        travelMode: 'truck',
+        vehicleMaxSpeed: TOMTOM_CONFIG.truckOptions.vehicleMaxSpeed,
+        vehicleWeight: TOMTOM_CONFIG.truckOptions.vehicleWeight,
+        vehicleAxleWeight: TOMTOM_CONFIG.truckOptions.vehicleAxleWeight,
+        vehicleLength: TOMTOM_CONFIG.truckOptions.vehicleLength,
+        vehicleWidth: TOMTOM_CONFIG.truckOptions.vehicleWidth,
+        vehicleHeight: TOMTOM_CONFIG.truckOptions.vehicleHeight,
+        vehicleCommercial: TOMTOM_CONFIG.truckOptions.vehicleCommercial,
+      });
+
+      if (routeResponse.routes && routeResponse.routes.length > 0) {
+        const routeGeoJson = routeResponse.routes[0].legs[0].points.map(point => [point.longitude, point.latitude]);
+        
+        map.addLayer({
+          'id': 'displayed-route',
+          'type': 'line',
+          'source': {
+            'type': 'geojson',
+            'data': {
+              'type': 'Feature',
+              'properties': {},
+              'geometry': {
+                'type': 'LineString',
+                'coordinates': routeGeoJson
+              }
+            }
+          },
+          'layout': {
+            'line-join': 'round',
+            'line-cap': 'round'
+          },
+          'paint': {
+            'line-color': '#FF6B35',
+            'line-width': 6,
+            'line-opacity': 0.8
+          }
+        });
+
+        const bounds = new tt.LngLatBounds();
+        routeGeoJson.forEach(coord => bounds.extend(coord));
+        map.fitBounds(bounds, { padding: 50 });
       }
-    );
+    } catch (error) {
+      console.error("Error displaying route:", error);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -299,33 +413,33 @@ export default function Routes() {
     <div className="p-6 space-y-6 ml-64">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Transportation Routes</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Truck Transportation Routes</h1>
           <p className="text-muted-foreground">
-            Plan and manage your shipment routes
+            Plan and manage your truck shipment routes with TomTom
           </p>
         </div>
         <Button onClick={() => setSelectedRoute(null)} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
-          New Route
+          New Truck Route
         </Button>
       </div>
 
       <Tabs defaultValue="create" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="create">Create Route</TabsTrigger>
+          <TabsTrigger value="create">Create Truck Route</TabsTrigger>
           <TabsTrigger value="routes">Existing Routes</TabsTrigger>
-          <TabsTrigger value="map">Map</TabsTrigger>
+          <TabsTrigger value="map">Route Map</TabsTrigger>
         </TabsList>
 
         <TabsContent value="create" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Route className="h-5 w-5" />
-                Plan New Route
+                <Truck className="h-5 w-5" />
+                Plan New Truck Route
               </CardTitle>
               <CardDescription>
-                Enter origin and destination to calculate the best route
+                Enter origin and destination to calculate the best truck route with TomTom
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -334,7 +448,7 @@ export default function Routes() {
                   <Label htmlFor="routeName">Route Name</Label>
                   <Input
                     id="routeName"
-                    placeholder="e.g., Miami - Orlando Express"
+                    placeholder="e.g., Miami - Orlando Truck Route"
                     value={routeName}
                     onChange={(e) => setRouteName(e.target.value)}
                   />
@@ -359,20 +473,31 @@ export default function Routes() {
                 </div>
               </div>
               
+              <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <Truck className="h-4 w-4 text-orange-600" />
+                  <span className="font-medium text-orange-900">Truck Route Optimization</span>
+                </div>
+                <p className="text-sm text-orange-700">
+                  Routes are optimized for commercial trucks considering weight, height, and width restrictions, 
+                  avoiding low bridges and weight-restricted roads.
+                </p>
+              </div>
+              
               <Button
-                onClick={calculateRoute}
+                onClick={calculateTruckRoute}
                 disabled={createRouteMutation.isPending}
                 className="w-full"
               >
                 {createRouteMutation.isPending ? (
                   <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Calculating...
+                    Calculating Truck Route...
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <Search className="h-4 w-4" />
-                    Calculate Route
+                    Calculate Truck Route
                   </div>
                 )}
               </Button>
@@ -385,10 +510,10 @@ export default function Routes() {
             {!Array.isArray(routes) || routes.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-8">
-                  <Route className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No routes found</h3>
+                  <Truck className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No truck routes found</h3>
                   <p className="text-muted-foreground text-center">
-                    Create your first route to start planning your shipments
+                    Create your first truck route to start planning your shipments
                   </p>
                 </CardContent>
               </Card>
@@ -439,9 +564,9 @@ export default function Routes() {
         <TabsContent value="map" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Route Map</CardTitle>
+              <CardTitle>TomTom Truck Route Map</CardTitle>
               <CardDescription>
-                Visualize all routes on the interactive map
+                Visualize all truck routes on the interactive TomTom map with traffic information
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -452,12 +577,15 @@ export default function Routes() {
                     className="h-96 w-full rounded-lg border"
                     style={{ minHeight: '400px' }}
                   />
-                  {!isGoogleMapsLoaded && (
+                  {!isTomTomLoaded && (
                     <div className="h-96 bg-gray-100 rounded-lg flex items-center justify-center">
                       <div className="text-center">
-                        <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <Truck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                         <p className="text-muted-foreground">
-                          Loading Google Maps...
+                          {TOMTOM_CONFIG.apiKey === "YOUR_TOMTOM_API_KEY_HERE" 
+                            ? "Please configure your TomTom API key" 
+                            : "Loading TomTom Maps..."
+                          }
                         </p>
                       </div>
                     </div>
@@ -465,7 +593,7 @@ export default function Routes() {
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <h4 className="font-semibold">Existing Routes</h4>
+                    <h4 className="font-semibold">Truck Routes</h4>
                     <div className="space-y-2 max-h-80 overflow-y-auto">
                       {Array.isArray(routes) && routes.length > 0 ? (
                         (routes as RouteType[]).map((route: RouteType) => (
@@ -481,7 +609,7 @@ export default function Routes() {
                               </p>
                               {route.distance && (
                                 <p className="text-xs text-muted-foreground">
-                                  {route.distance} km
+                                  {route.distance} km (Truck Optimized)
                                 </p>
                               )}
                               <Badge size="sm" className={getStatusColor(route.status)}>
@@ -492,15 +620,20 @@ export default function Routes() {
                         ))
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          No routes available
+                          No truck routes available
                         </p>
                       )}
                     </div>
                   </div>
-                  <div id="directions-panel" className="text-xs bg-muted p-2 rounded max-h-40 overflow-y-auto">
-                    <p className="text-muted-foreground">
-                      Route directions will appear here when a route is calculated.
-                    </p>
+                  <div className="bg-muted p-3 rounded text-xs">
+                    <p className="font-medium mb-1">TomTom Truck Features:</p>
+                    <ul className="space-y-1 text-muted-foreground">
+                      <li>• Weight & height restrictions</li>
+                      <li>• Bridge clearance optimization</li>
+                      <li>• Commercial vehicle routing</li>
+                      <li>• Real-time traffic data</li>
+                      <li>• Eco-friendly route options</li>
+                    </ul>
                   </div>
                 </div>
               </div>
