@@ -67,11 +67,8 @@ export default function Routes() {
   useEffect(() => {
     const initTomTomMap = async () => {
       try {
-        console.log("API Key from config:", TOMTOM_CONFIG.apiKey);
-        console.log("Map container ref:", mapRef.current);
-        
-        if (mapRef.current && TOMTOM_CONFIG.apiKey && TOMTOM_CONFIG.apiKey !== "YOUR_TOMTOM_API_KEY_HERE") {
-          console.log("Initializing TomTom map with API key:", TOMTOM_CONFIG.apiKey.substring(0, 8) + "...");
+        if (mapRef.current && TOMTOM_CONFIG.apiKey) {
+          console.log("Initializing TomTom map...");
           
           const mapInstance = tt.map({
             key: TOMTOM_CONFIG.apiKey,
@@ -84,42 +81,41 @@ export default function Routes() {
             },
           });
 
-          // Set map immediately and mark as loaded
-          setMap(mapInstance);
-          setIsTomTomLoaded(true);
-          
-          // Add navigation controls
-          mapInstance.addControl(new tt.NavigationControl());
-          mapInstance.addControl(new tt.FullscreenControl());
+          mapInstance.on('load', () => {
+            console.log("TomTom map loaded successfully");
+            setMap(mapInstance);
+            setIsTomTomLoaded(true);
+            
+            // Add navigation controls
+            mapInstance.addControl(new tt.NavigationControl());
+            mapInstance.addControl(new tt.FullscreenControl());
+          });
 
-          console.log("TomTom map initialized successfully");
+          mapInstance.on('error', (error) => {
+            console.error("TomTom map error:", error);
+            setIsTomTomLoaded(false);
+          });
 
         } else {
-          console.log("TomTom API key not configured properly");
-          console.log("API Key value:", TOMTOM_CONFIG.apiKey);
+          console.log("Map container not ready or API key missing");
           setIsTomTomLoaded(false);
         }
       } catch (error) {
         console.error("Error initializing TomTom Maps:", error);
-        toast({
-          title: "Maps Error",
-          description: "Failed to initialize TomTom Maps. Check console for details.",
-          variant: "destructive",
-        });
         setIsTomTomLoaded(false);
       }
     };
 
-    // Add a small delay to ensure the DOM is ready
-    const timeoutId = setTimeout(initTomTomMap, 500);
+    if (mapRef.current) {
+      initTomTomMap();
+    }
 
     return () => {
-      clearTimeout(timeoutId);
       if (map) {
         map.remove();
       }
     };
-  }, [toast]);
+  }, [mapRef.current]);
 
   const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number }> => {
     try {
@@ -217,13 +213,20 @@ export default function Routes() {
               .setPopup(new tt.Popup().setHTML(`<strong>Destination:</strong><br>${destination}`))
               .addTo(map);
 
-            // Add route line
+            // Add route line using TomTom's built-in method
             const routeGeoJson = route.legs[0].points.map(point => [point.longitude, point.latitude]);
             
-            map.addLayer({
-              'id': 'truck-route',
-              'type': 'line',
-              'source': {
+            // Remove existing route layers
+            const layers = map.getStyle().layers;
+            layers.forEach(layer => {
+              if (layer.id && layer.id.includes('route')) {
+                map.removeLayer(layer.id);
+              }
+            });
+
+            // Add new route source and layer
+            if (!map.getSource('truck-route-source')) {
+              map.addSource('truck-route-source', {
                 'type': 'geojson',
                 'data': {
                   'type': 'Feature',
@@ -233,7 +236,13 @@ export default function Routes() {
                     'coordinates': routeGeoJson
                   }
                 }
-              },
+              });
+            }
+
+            map.addLayer({
+              'id': 'truck-route-layer',
+              'type': 'line',
+              'source': 'truck-route-source',
               'layout': {
                 'line-join': 'round',
                 'line-cap': 'round'
@@ -317,77 +326,74 @@ export default function Routes() {
   };
 
   const displayRouteOnMap = async (route: RouteType) => {
-    if (!map || !isTomTomLoaded) return;
+    if (!map || !isTomTomLoaded || !route.originLat || !route.originLng || !route.destinationLat || !route.destinationLng) {
+      console.log("Map not ready or route coordinates missing");
+      return;
+    }
 
     try {
-      // Clear existing markers and routes
-      map.getMarkers().forEach(marker => marker.remove());
-      map.getLayers().forEach(layer => {
-        if (layer.getId && layer.getId().includes('route')) {
-          map.removeLayer(layer);
-        }
-      });
+      // Clear existing markers
+      const markers = map.getMarkers();
+      markers.forEach(marker => marker.remove());
 
-      // Add markers
+      // Add origin and destination markers
       new tt.Marker({ color: 'green' })
-        .setLngLat([route.originLng!, route.originLat!])
+        .setLngLat([route.originLng, route.originLat])
         .setPopup(new tt.Popup().setHTML(`<strong>Origin:</strong><br>${route.origin}`))
         .addTo(map);
 
       new tt.Marker({ color: 'red' })
-        .setLngLat([route.destinationLng!, route.destinationLat!])
+        .setLngLat([route.destinationLng, route.destinationLat])
         .setPopup(new tt.Popup().setHTML(`<strong>Destination:</strong><br>${route.destination}`))
         .addTo(map);
 
-      // Calculate and display route
-      const routeResponse = await ttServices.services.calculateRoute({
-        key: TOMTOM_CONFIG.apiKey,
-        locations: [
-          [route.originLng!, route.originLat!],
-          [route.destinationLng!, route.destinationLat!]
-        ],
-        travelMode: 'truck',
-        vehicleMaxSpeed: TOMTOM_CONFIG.truckOptions.vehicleMaxSpeed,
-        vehicleWeight: TOMTOM_CONFIG.truckOptions.vehicleWeight,
-        vehicleAxleWeight: TOMTOM_CONFIG.truckOptions.vehicleAxleWeight,
-        vehicleLength: TOMTOM_CONFIG.truckOptions.vehicleLength,
-        vehicleWidth: TOMTOM_CONFIG.truckOptions.vehicleWidth,
-        vehicleHeight: TOMTOM_CONFIG.truckOptions.vehicleHeight,
-        vehicleCommercial: TOMTOM_CONFIG.truckOptions.vehicleCommercial,
+      // Fit map to show both points
+      const bounds = new tt.LngLatBounds();
+      bounds.extend([route.originLng, route.originLat]);
+      bounds.extend([route.destinationLng, route.destinationLat]);
+      map.fitBounds(bounds, { padding: 50 });
+
+      // Draw a simple line between points (as fallback)
+      const lineCoords = [
+        [route.originLng, route.originLat],
+        [route.destinationLng, route.destinationLat]
+      ];
+
+      // Remove existing route layer if it exists
+      if (map.getLayer('simple-route-line')) {
+        map.removeLayer('simple-route-line');
+      }
+      if (map.getSource('simple-route-source')) {
+        map.removeSource('simple-route-source');
+      }
+
+      map.addSource('simple-route-source', {
+        'type': 'geojson',
+        'data': {
+          'type': 'Feature',
+          'properties': {},
+          'geometry': {
+            'type': 'LineString',
+            'coordinates': lineCoords
+          }
+        }
       });
 
-      if (routeResponse.routes && routeResponse.routes.length > 0) {
-        const routeGeoJson = routeResponse.routes[0].legs[0].points.map(point => [point.longitude, point.latitude]);
-        
-        map.addLayer({
-          'id': 'displayed-route',
-          'type': 'line',
-          'source': {
-            'type': 'geojson',
-            'data': {
-              'type': 'Feature',
-              'properties': {},
-              'geometry': {
-                'type': 'LineString',
-                'coordinates': routeGeoJson
-              }
-            }
-          },
-          'layout': {
-            'line-join': 'round',
-            'line-cap': 'round'
-          },
-          'paint': {
-            'line-color': '#FF6B35',
-            'line-width': 6,
-            'line-opacity': 0.8
-          }
-        });
+      map.addLayer({
+        'id': 'simple-route-line',
+        'type': 'line',
+        'source': 'simple-route-source',
+        'layout': {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        'paint': {
+          'line-color': '#FF6B35',
+          'line-width': 4,
+          'line-opacity': 0.8
+        }
+      });
 
-        const bounds = new tt.LngLatBounds();
-        routeGeoJson.forEach(coord => bounds.extend(coord));
-        map.fitBounds(bounds, { padding: 50 });
-      }
     } catch (error) {
       console.error("Error displaying route:", error);
     }
