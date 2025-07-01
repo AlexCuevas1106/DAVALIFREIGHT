@@ -67,6 +67,9 @@ export default function Routes() {
   useEffect(() => {
     const initTomTomMap = async () => {
       try {
+        console.log("API Key from config:", TOMTOM_CONFIG.apiKey);
+        console.log("Map container ref:", mapRef.current);
+        
         if (mapRef.current && TOMTOM_CONFIG.apiKey && TOMTOM_CONFIG.apiKey !== "YOUR_TOMTOM_API_KEY_HERE") {
           console.log("Initializing TomTom map with API key:", TOMTOM_CONFIG.apiKey.substring(0, 8) + "...");
           
@@ -81,40 +84,26 @@ export default function Routes() {
             },
           });
 
-          mapInstance.on('load', () => {
-            console.log("TomTom map loaded successfully");
-            setMap(mapInstance);
-            setIsTomTomLoaded(true);
-            
-            // Add navigation controls
-            mapInstance.addControl(new tt.NavigationControl());
-            mapInstance.addControl(new tt.FullscreenControl());
-          });
+          // Set map immediately and mark as loaded
+          setMap(mapInstance);
+          setIsTomTomLoaded(true);
+          
+          // Add navigation controls
+          mapInstance.addControl(new tt.NavigationControl());
+          mapInstance.addControl(new tt.FullscreenControl());
 
-          mapInstance.on('error', (error) => {
-            console.error("TomTom map error:", error);
-            setIsTomTomLoaded(false);
-            toast({
-              title: "Maps Error",
-              description: "Failed to load TomTom Maps. Check API key and internet connection.",
-              variant: "destructive",
-            });
-          });
+          console.log("TomTom map initialized successfully");
 
         } else {
-          console.log("TomTom API key not configured");
+          console.log("TomTom API key not configured properly");
+          console.log("API Key value:", TOMTOM_CONFIG.apiKey);
           setIsTomTomLoaded(false);
-          toast({
-            title: "TomTom Configuration",
-            description: "Please add your TomTom API key to use mapping features",
-            variant: "destructive",
-          });
         }
       } catch (error) {
         console.error("Error initializing TomTom Maps:", error);
         toast({
           title: "Maps Error",
-          description: "Failed to initialize TomTom Maps. Please check your API key.",
+          description: "Failed to initialize TomTom Maps. Check console for details.",
           variant: "destructive",
         });
         setIsTomTomLoaded(false);
@@ -122,7 +111,7 @@ export default function Routes() {
     };
 
     // Add a small delay to ensure the DOM is ready
-    const timeoutId = setTimeout(initTomTomMap, 100);
+    const timeoutId = setTimeout(initTomTomMap, 500);
 
     return () => {
       clearTimeout(timeoutId);
@@ -133,30 +122,32 @@ export default function Routes() {
   }, [toast]);
 
   const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number }> => {
-    if (!isTomTomLoaded || TOMTOM_CONFIG.apiKey === "YOUR_TOMTOM_API_KEY_HERE") {
-      // Fallback coordinates if TomTom fails
-      return { lat: 25.7617, lng: -80.1918 };
-    }
-
     try {
-      const response = await ttServices.services.geocode({
-        key: TOMTOM_CONFIG.apiKey,
-        query: address,
-        limit: 1,
-      });
+      if (TOMTOM_CONFIG.apiKey && TOMTOM_CONFIG.apiKey !== "YOUR_TOMTOM_API_KEY_HERE") {
+        console.log("Geocoding address:", address);
+        
+        const response = await ttServices.services.geocode({
+          key: TOMTOM_CONFIG.apiKey,
+          query: address,
+          limit: 1,
+        });
 
-      if (response.results && response.results.length > 0) {
-        const location = response.results[0].position;
-        return {
-          lat: location.lat,
-          lng: location.lon,
-        };
+        console.log("Geocoding response:", response);
+
+        if (response.results && response.results.length > 0) {
+          const location = response.results[0].position;
+          return {
+            lat: location.lat,
+            lng: location.lon,
+          };
+        }
       }
     } catch (error) {
       console.error("Geocoding error:", error);
     }
 
-    // Fallback coordinates
+    // Fallback coordinates (Miami, FL)
+    console.log("Using fallback coordinates for:", address);
     return { lat: 25.7617, lng: -80.1918 };
   };
 
