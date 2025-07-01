@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-
+import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
 import { ModuleCard } from "@/components/module-card";
 import { StatusSelector } from "@/components/status-selector";
@@ -111,7 +111,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <main className="ml-64">
+      <Sidebar />
+      
+      <main>
         <Header 
           driver={driver}
           status={driver.status}

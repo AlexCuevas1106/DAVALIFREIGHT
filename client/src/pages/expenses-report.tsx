@@ -1,7 +1,6 @@
 import { useState } from "react";
-
-import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
+import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,474 +8,445 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { 
+  Truck, 
   Plus, 
   Trash2, 
-  Camera, 
-  FileText, 
-  Download,
-  RotateCcw
+  Upload,
+  MapPin,
+  DollarSign,
+  FileText,
+  Clock,
+  Download
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-interface TripRecord {
-  id: string;
-  loadNumber: string;
-  emptyFrom: string;
-  emptyTo: string;
-  loadedFrom: string;
-  loadedTo: string;
-  startOdometer: string;
-  finishOdometer: string;
-  totalMiles: string;
-}
 
 interface FuelEntry {
   id: string;
   date: string;
   city: string;
   state: string;
-  gallons: number;
-  cost: number;
-  image: File | null;
+  gallons: string;
+  cost: string;
+  image?: File;
+}
+
+interface Destination {
+  id: string;
+  origin: string;
+  destination: string;
 }
 
 interface MiscellaneousEntry {
   id: string;
   description: string;
-  amount: number;
-  category: string;
+  amount: string;
+  date: string;
 }
 
 interface MileageEntry {
   id: string;
-  state: string;
-  odometerReading: string;
-  highwaysTraveled: string;
-  milesLoaded: string;
-  milesEmpty: string;
+  date: string;
+  odometer: string;
+  location: string;
+  miles: string;
 }
 
 export default function ExpensesReport() {
-  const [tripRecord, setTripRecord] = useState<TripRecord>({
-    id: '1',
-    loadNumber: '',
-    emptyFrom: '',
-    emptyTo: '',
-    loadedFrom: '',
-    loadedTo: '',
-    startOdometer: '',
-    finishOdometer: '',
-    totalMiles: ''
-  });
+  const { toast } = useToast();
+  const [destinations, setDestinations] = useState<Destination[]>([
+    { id: "1", origin: "", destination: "" }
+  ]);
 
   const [fuelEntries, setFuelEntries] = useState<FuelEntry[]>([
-    { id: '1', date: '', city: '', state: '', gallons: 0, cost: 0, image: null }
+    { id: "1", date: "", city: "", state: "", gallons: "", cost: "" }
   ]);
 
   const [miscEntries, setMiscEntries] = useState<MiscellaneousEntry[]>([
-    { id: '1', description: '', amount: 0, category: '' }
+    { id: "1", description: "", amount: "", date: "" }
   ]);
 
   const [mileageEntries, setMileageEntries] = useState<MileageEntry[]>([
-    { id: '1', state: '', odometerReading: '', highwaysTraveled: '', milesLoaded: '', milesEmpty: '' }
+    { id: "1", date: "", odometer: "", location: "", miles: "" }
   ]);
 
-  // Mock driver data
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  // Driver data (you can get this from your dashboard query)
   const driver = {
     id: 1,
     name: "Skyler Droubay",
-    role: "driver"
+    status: "on_duty"
+  };
+
+  const addDestination = () => {
+    if (destinations.length < 4) {
+      setDestinations([...destinations, { id: Date.now().toString(), origin: "", destination: "" }]);
+    }
+  };
+
+  const removeDestination = (id: string) => {
+    if (destinations.length > 1) {
+      setDestinations(destinations.filter(dest => dest.id !== id));
+    }
+  };
+
+  const updateDestination = (id: string, field: keyof Destination, value: string) => {
+    setDestinations(destinations.map(dest => 
+      dest.id === id ? { ...dest, [field]: value } : dest
+    ));
   };
 
   const addFuelEntry = () => {
-    const newEntry: FuelEntry = {
-      id: Date.now().toString(),
-      date: '',
-      city: '',
-      state: '',
-      gallons: 0,
-      cost: 0,
-      image: null
-    };
-    setFuelEntries([...fuelEntries, newEntry]);
+    setFuelEntries([...fuelEntries, { 
+      id: Date.now().toString(), 
+      date: "", 
+      city: "", 
+      state: "", 
+      gallons: "", 
+      cost: "" 
+    }]);
   };
 
-  const addMiscEntry = () => {
-    const newEntry: MiscellaneousEntry = {
-      id: Date.now().toString(),
-      description: '',
-      amount: 0,
-      category: ''
-    };
-    setMiscEntries([...miscEntries, newEntry]);
-  };
-
-  const addMileageEntry = () => {
-    const newEntry: MileageEntry = {
-      id: Date.now().toString(),
-      state: '',
-      odometerReading: '',
-      highwaysTraveled: '',
-      milesLoaded: '',
-      milesEmpty: ''
-    };
-    setMileageEntries([...mileageEntries, newEntry]);
-  };
-
-  const updateFuelEntry = (id: string, field: keyof FuelEntry, value: any) => {
-    setFuelEntries(fuelEntries.map(entry => 
-      entry.id === id ? { ...entry, [field]: value } : entry
-    ));
-  };
-
-  const updateMiscEntry = (id: string, field: keyof MiscellaneousEntry, value: any) => {
-    setMiscEntries(miscEntries.map(entry => 
-      entry.id === id ? { ...entry, [field]: value } : entry
-    ));
-  };
-
-  const updateMileageEntry = (id: string, field: keyof MileageEntry, value: any) => {
-    setMileageEntries(mileageEntries.map(entry => 
-      entry.id === id ? { ...entry, [field]: value } : entry
-    ));
-  };
-
-  const deleteFuelEntry = (id: string) => {
+  const removeFuelEntry = (id: string) => {
     if (fuelEntries.length > 1) {
       setFuelEntries(fuelEntries.filter(entry => entry.id !== id));
     }
   };
 
-  const deleteMiscEntry = (id: string) => {
+  const updateFuelEntry = (id: string, field: keyof FuelEntry, value: string | File) => {
+    setFuelEntries(fuelEntries.map(entry => 
+      entry.id === id ? { ...entry, [field]: value } : entry
+    ));
+  };
+
+  const addMiscEntry = () => {
+    setMiscEntries([...miscEntries, { 
+      id: Date.now().toString(), 
+      description: "", 
+      amount: "", 
+      date: "" 
+    }]);
+  };
+
+  const removeMiscEntry = (id: string) => {
     if (miscEntries.length > 1) {
       setMiscEntries(miscEntries.filter(entry => entry.id !== id));
     }
   };
 
-  const deleteMileageEntry = (id: string) => {
+  const updateMiscEntry = (id: string, field: keyof MiscellaneousEntry, value: string) => {
+    setMiscEntries(miscEntries.map(entry => 
+      entry.id === id ? { ...entry, [field]: value } : entry
+    ));
+  };
+
+  const addMileageEntry = () => {
+    setMileageEntries([...mileageEntries, { 
+      id: Date.now().toString(), 
+      date: "", 
+      odometer: "", 
+      location: "", 
+      miles: "" 
+    }]);
+  };
+
+  const removeMileageEntry = (id: string) => {
     if (mileageEntries.length > 1) {
       setMileageEntries(mileageEntries.filter(entry => entry.id !== id));
     }
   };
 
-  const handleImageUpload = (id: string, file: File) => {
-    updateFuelEntry(id, 'image', file);
+  const updateMileageEntry = (id: string, field: keyof MileageEntry, value: string) => {
+    setMileageEntries(mileageEntries.map(entry => 
+      entry.id === id ? { ...entry, [field]: value } : entry
+    ));
   };
 
-  const generatePDF = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+  const generatePDF = async () => {
+    setIsGeneratingPDF(true);
+    try {
+      const element = document.getElementById('expense-report-content');
+      if (!element) return;
 
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Trip Report - ${tripRecord.loadNumber}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .section { margin-bottom: 25px; }
-            .section h3 { border-bottom: 2px solid #333; padding-bottom: 5px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f5f5f5; }
-            .summary { background-color: #f9f9f9; padding: 15px; border-radius: 5px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Driver Trip Report</h1>
-            <p>Load Number: ${tripRecord.loadNumber}</p>
-            <p>Driver: ${driver.name}</p>
-            <p>Date: ${new Date().toLocaleDateString()}</p>
-          </div>
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true
+      });
 
-          <div class="section">
-            <h3>Trip Information</h3>
-            <table>
-              <tr><td><strong>Load Number:</strong></td><td>${tripRecord.loadNumber}</td></tr>
-              <tr><td><strong>Empty From:</strong></td><td>${tripRecord.emptyFrom}</td></tr>
-              <tr><td><strong>Empty To:</strong></td><td>${tripRecord.emptyTo}</td></tr>
-              <tr><td><strong>Loaded From:</strong></td><td>${tripRecord.loadedFrom}</td></tr>
-              <tr><td><strong>Loaded To:</strong></td><td>${tripRecord.loadedTo}</td></tr>
-              <tr><td><strong>Start Odometer:</strong></td><td>${tripRecord.startOdometer}</td></tr>
-              <tr><td><strong>Finish Odometer:</strong></td><td>${tripRecord.finishOdometer}</td></tr>
-              <tr><td><strong>Total Miles:</strong></td><td>${tripRecord.totalMiles}</td></tr>
-            </table>
-          </div>
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const imgWidth = 210;
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
 
-          <div class="section">
-            <h3>Fuel Expenses</h3>
-            <table>
-              <tr><th>Date</th><th>City</th><th>State</th><th>Gallons</th><th>Cost</th></tr>
-              ${fuelEntries.map(entry => `
-                <tr>
-                  <td>${entry.date}</td>
-                  <td>${entry.city}</td>
-                  <td>${entry.state}</td>
-                  <td>${entry.gallons}</td>
-                  <td>$${entry.cost.toFixed(2)}</td>
-                </tr>
-              `).join('')}
-            </table>
-            <div class="summary">
-              <strong>Total Fuel Cost: $${fuelEntries.reduce((sum, entry) => sum + entry.cost, 0).toFixed(2)}</strong>
-            </div>
-          </div>
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
 
-          <div class="section">
-            <h3>Miscellaneous Expenses</h3>
-            <table>
-              <tr><th>Description</th><th>Category</th><th>Amount</th></tr>
-              ${miscEntries.map(entry => `
-                <tr>
-                  <td>${entry.description}</td>
-                  <td>${entry.category}</td>
-                  <td>$${entry.amount.toFixed(2)}</td>
-                </tr>
-              `).join('')}
-            </table>
-            <div class="summary">
-              <strong>Total Misc Expenses: $${miscEntries.reduce((sum, entry) => sum + entry.amount, 0).toFixed(2)}</strong>
-            </div>
-          </div>
+      // Add additional pages if needed
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
 
-          <div class="section">
-            <h3>Mileage Log</h3>
-            <table>
-              <tr><th>State</th><th>Odometer Reading</th><th>Highways Traveled</th><th>Miles Loaded</th><th>Miles Empty</th></tr>
-              ${mileageEntries.map(entry => `
-                <tr>
-                  <td>${entry.state}</td>
-                  <td>${entry.odometerReading}</td>
-                  <td>${entry.highwaysTraveled}</td>
-                  <td>${entry.milesLoaded}</td>
-                  <td>${entry.milesEmpty}</td>
-                </tr>
-              `).join('')}
-            </table>
-          </div>
-
-          <script>
-            window.onload = function() {
-              window.print();
-              window.onafterprint = function() {
-                window.close();
-              };
-            };
-          </script>
-        </body>
-      </html>
-    `;
-
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
+      // Generate filename with current date
+      const currentDate = new Date().toISOString().split('T')[0];
+      const filename = `Expense_Report_${driver.name.replace(' ', '_')}_${currentDate}.pdf`;
+      
+      pdf.save(filename);
+      
+      toast({
+        title: "Success",
+        description: "Expense report PDF generated successfully!",
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   const createNewReport = () => {
-    setTripRecord({
-      id: Date.now().toString(),
-      loadNumber: '',
-      emptyFrom: '',
-      emptyTo: '',
-      loadedFrom: '',
-      loadedTo: '',
-      startOdometer: '',
-      finishOdometer: '',
-      totalMiles: ''
+    // Reset all form data
+    setDestinations([{ id: "1", origin: "", destination: "" }]);
+    setFuelEntries([{ id: "1", date: "", city: "", state: "", gallons: "", cost: "" }]);
+    setMiscEntries([{ id: "1", description: "", amount: "", date: "" }]);
+    setMileageEntries([{ id: "1", date: "", odometer: "", location: "", miles: "" }]);
+    
+    toast({
+      title: "New Report",
+      description: "Created a new expense report. All fields have been cleared.",
     });
-    setFuelEntries([{ id: '1', date: '', city: '', state: '', gallons: 0, cost: 0, image: null }]);
-    setMiscEntries([{ id: '1', description: '', amount: 0, category: '' }]);
-    setMileageEntries([{ id: '1', state: '', odometerReading: '', highwaysTraveled: '', milesLoaded: '', milesEmpty: '' }]);
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="ml-64">
+
+      <main>
         <Header 
           driver={driver}
-          status="on_duty"
+          status={driver.status}
         />
-        
-        <div className="p-6 space-y-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Trip Record</h1>
-              <p className="text-gray-600">State law requires complete and accurate record be filled out for each trip.</p>
-            </div>
-            <div className="flex space-x-3">
-              <Button 
-                onClick={createNewReport}
-                variant="outline"
-                className="flex items-center space-x-2"
-              >
-                <RotateCcw className="w-4 h-4" />
-                <span>New Report</span>
-              </Button>
-              <Button 
-                onClick={generatePDF}
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
-              >
-                <Download className="w-4 h-4" />
-                <span>Save Report</span>
-              </Button>
+
+        <div className="p-6">
+          {/* Header */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Expenses Report</h1>
+                <p className="text-gray-600">Track fuel, destinations, and trip expenses</p>
+              </div>
+              <div className="flex gap-3">
+                <Button 
+                  onClick={createNewReport} 
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Report
+                </Button>
+                <Button 
+                  onClick={generatePDF} 
+                  disabled={isGeneratingPDF}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isGeneratingPDF ? (
+                    <>
+                      <Clock className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Save as PDF
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
+          <div id="expense-report-content" className="bg-white p-6 rounded-lg">
+            {/* Report Header for PDF */}
+            <div className="mb-6 text-center border-b pb-4">
+              <h2 className="text-xl font-bold text-gray-900">Expense Report</h2>
+              <p className="text-gray-600">Driver: {driver.name}</p>
+              <p className="text-gray-500 text-sm">Generated on: {new Date().toLocaleDateString()}</p>
+            </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Trip Info and Forms */}
+            {/* Left Column - Main Content */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Trip Information */}
+              {/* Destinations Section */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <FileText className="w-5 h-5" />
-                    <span>Trip Information</span>
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center">
+                      <MapPin className="w-5 h-5 mr-2 text-blue-600" />
+                      Destinations (Max 4)
+                    </CardTitle>
+                    {destinations.length < 4 && (
+                      <Button onClick={addDestination} size="sm" variant="outline">
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="loadNumber">Load Number</Label>
-                      <Input
-                        id="loadNumber"
-                        value={tripRecord.loadNumber}
-                        onChange={(e) => setTripRecord({...tripRecord, loadNumber: e.target.value})}
-                        placeholder="Enter load number"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="totalMiles">Total Miles</Label>
-                      <Input
-                        id="totalMiles"
-                        value={tripRecord.totalMiles}
-                        onChange={(e) => setTripRecord({...tripRecord, totalMiles: e.target.value})}
-                        placeholder="Total miles for trip"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="emptyFrom">Empty From</Label>
-                      <Input
-                        id="emptyFrom"
-                        value={tripRecord.emptyFrom}
-                        onChange={(e) => setTripRecord({...tripRecord, emptyFrom: e.target.value})}
-                        placeholder="Starting location"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="emptyTo">Empty To</Label>
-                      <Input
-                        id="emptyTo"
-                        value={tripRecord.emptyTo}
-                        onChange={(e) => setTripRecord({...tripRecord, emptyTo: e.target.value})}
-                        placeholder="Pickup location"
-                      />
-                    </div>
+                  <div className="space-y-4">
+                    {destinations.map((dest, index) => (
+                      <div key={dest.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg">
+                        <div>
+                          <Label htmlFor={`origin-${dest.id}`}>Origin {index + 1}</Label>
+                          <Input
+                            id={`origin-${dest.id}`}
+                            value={dest.origin}
+                            onChange={(e) => updateDestination(dest.id, "origin", e.target.value)}
+                            placeholder="Enter origin location"
+                          />
+                        </div>
+                        <div className="flex items-end gap-2">
+                          <div className="flex-1">
+                            <Label htmlFor={`destination-${dest.id}`}>Destination {index + 1}</Label>
+                            <Input
+                              id={`destination-${dest.id}`}
+                              value={dest.destination}
+                              onChange={(e) => updateDestination(dest.id, "destination", e.target.value)}
+                              placeholder="Enter destination location"
+                            />
+                          </div>
+                          {destinations.length > 1 && (
+                            <Button 
+                              onClick={() => removeDestination(dest.id)}
+                              size="sm" 
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Fuel Tracking */}
+              {/* Diesel/Fuel Section */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center space-x-2">
-                      <FileText className="w-5 h-5" />
-                      <span>Fuel Tracking</span>
-                    </span>
-                    <Button
-                      onClick={addFuelEntry}
-                      size="sm"
-                      className="flex items-center space-x-1"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Add Entry</span>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center">
+                      <Truck className="w-5 h-5 mr-2 text-green-600" />
+                      Fuel Expenses
+                    </CardTitle>
+                    <Button onClick={addFuelEntry} size="sm" variant="outline">
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add Entry
                     </Button>
-                  </CardTitle>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {fuelEntries.map((entry) => (
-                      <div key={entry.id} className="border rounded-lg p-4 space-y-3">
-                        <div className="flex justify-between items-center">
-                          <h4 className="font-medium">Fuel Entry #{entry.id}</h4>
-                          {fuelEntries.length > 1 && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => deleteFuelEntry(entry.id)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
+                      <div key={entry.id} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg">
+                        <div>
+                          <Label htmlFor={`fuel-date-${entry.id}`}>Date</Label>
+                          <Input
+                            id={`fuel-date-${entry.id}`}
+                            type="date"
+                            value={entry.date}
+                            onChange={(e) => updateFuelEntry(entry.id, "date", e.target.value)}
+                          />
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          <div>
-                            <Label className="text-xs">Date</Label>
+                        <div>
+                          <Label htmlFor={`fuel-city-${entry.id}`}>City</Label>
+                          <Input
+                            id={`fuel-city-${entry.id}`}
+                            value={entry.city}
+                            onChange={(e) => updateFuelEntry(entry.id, "city", e.target.value)}
+                            placeholder="City"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`fuel-state-${entry.id}`}>State</Label>
+                          <Input
+                            id={`fuel-state-${entry.id}`}
+                            value={entry.state}
+                            onChange={(e) => updateFuelEntry(entry.id, "state", e.target.value)}
+                            placeholder="ST"
+                            maxLength={2}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`fuel-gallons-${entry.id}`}>Gallons</Label>
+                          <Input
+                            id={`fuel-gallons-${entry.id}`}
+                            type="number"
+                            step="0.01"
+                            value={entry.gallons}
+                            onChange={(e) => updateFuelEntry(entry.id, "gallons", e.target.value)}
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`fuel-cost-${entry.id}`}>Cost ($)</Label>
+                          <Input
+                            id={`fuel-cost-${entry.id}`}
+                            type="number"
+                            step="0.01"
+                            value={entry.cost}
+                            onChange={(e) => updateFuelEntry(entry.id, "cost", e.target.value)}
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor={`fuel-image-${entry.id}`}>Receipt</Label>
+                          <div className="flex gap-1">
                             <Input
-                              type="date"
-                              value={entry.date}
-                              onChange={(e) => updateFuelEntry(entry.id, 'date', e.target.value)}
-                              className="text-sm"
+                              id={`fuel-image-${entry.id}`}
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) updateFuelEntry(entry.id, "image", file);
+                              }}
+                              className="hidden"
                             />
-                          </div>
-                          <div>
-                            <Label className="text-xs">City</Label>
-                            <Input
-                              value={entry.city}
-                              onChange={(e) => updateFuelEntry(entry.id, 'city', e.target.value)}
-                              placeholder="City"
-                              className="text-sm"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">State</Label>
-                            <Input
-                              value={entry.state}
-                              onChange={(e) => updateFuelEntry(entry.id, 'state', e.target.value)}
-                              placeholder="State"
-                              className="text-sm"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Gallons</Label>
-                            <Input
-                              type="number"
-                              value={entry.gallons}
-                              onChange={(e) => updateFuelEntry(entry.id, 'gallons', parseFloat(e.target.value) || 0)}
-                              placeholder="0"
-                              className="text-sm"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Cost ($)</Label>
-                            <Input
-                              type="number"
-                              value={entry.cost}
-                              onChange={(e) => updateFuelEntry(entry.id, 'cost', parseFloat(e.target.value) || 0)}
-                              placeholder="0.00"
-                              className="text-sm"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Receipt Image</Label>
-                            <div className="flex space-x-2">
-                              <Input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleImageUpload(entry.id, file);
-                                }}
-                                className="text-xs"
-                              />
-                              <Button size="sm" variant="outline">
-                                <Camera className="w-4 h-4" />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => document.getElementById(`fuel-image-${entry.id}`)?.click()}
+                            >
+                              <Upload className="w-3 h-3" />
+                            </Button>
+                            {fuelEntries.length > 1 && (
+                              <Button 
+                                onClick={() => removeFuelEntry(entry.id)}
+                                size="sm" 
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-3 h-3" />
                               </Button>
-                            </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -485,90 +455,64 @@ export default function ExpensesReport() {
                 </CardContent>
               </Card>
 
-              {/* Mileage Log */}
+              {/* Miscellaneous Expenses Section */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center space-x-2">
-                      <FileText className="w-5 h-5" />
-                      <span>Mileage Log</span>
-                    </span>
-                    <Button
-                      onClick={addMileageEntry}
-                      size="sm"
-                      className="flex items-center space-x-1"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Add Entry</span>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center">
+                      <DollarSign className="w-5 h-5 mr-2 text-purple-600" />
+                      Miscellaneous Expenses
+                    </CardTitle>
+                    <Button onClick={addMiscEntry} size="sm" variant="outline">
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add Entry
                     </Button>
-                  </CardTitle>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {mileageEntries.map((entry) => (
-                      <div key={entry.id} className="border rounded-lg p-4 space-y-3">
-                        <div className="flex justify-between items-center">
-                          <h4 className="font-medium">Mileage Entry #{entry.id}</h4>
-                          {mileageEntries.length > 1 && (
-                            <Button
+                    {miscEntries.map((entry) => (
+                      <div key={entry.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
+                        <div className="md:col-span-2">
+                          <Label htmlFor={`misc-desc-${entry.id}`}>Description</Label>
+                          <Input
+                            id={`misc-desc-${entry.id}`}
+                            value={entry.description}
+                            onChange={(e) => updateMiscEntry(entry.id, "description", e.target.value)}
+                            placeholder="Expense description"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`misc-amount-${entry.id}`}>Amount ($)</Label>
+                          <Input
+                            id={`misc-amount-${entry.id}`}
+                            type="number"
+                            step="0.01"
+                            value={entry.amount}
+                            onChange={(e) => updateMiscEntry(entry.id, "amount", e.target.value)}
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <div className="flex items-end gap-2">
+                          <div className="flex-1">
+                            <Label htmlFor={`misc-date-${entry.id}`}>Date</Label>
+                            <Input
+                              id={`misc-date-${entry.id}`}
+                              type="date"
+                              value={entry.date}
+                              onChange={(e) => updateMiscEntry(entry.id, "date", e.target.value)}
+                            />
+                          </div>
+                          {miscEntries.length > 1 && (
+                            <Button 
+                              onClick={() => removeMiscEntry(entry.id)}
+                              size="sm" 
                               variant="outline"
-                              size="sm"
-                              onClick={() => deleteMileageEntry(entry.id)}
                               className="text-red-600 hover:text-red-700"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           )}
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                          <div>
-                            <Label className="text-xs">State</Label>
-                            <Input
-                              value={entry.state}
-                              onChange={(e) => updateMileageEntry(entry.id, 'state', e.target.value)}
-                              placeholder="State"
-                              className="text-sm"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Odometer Reading</Label>
-                            <Input
-                              type="number"
-                              value={entry.odometerReading}
-                              onChange={(e) => updateMileageEntry(entry.id, 'odometerReading', e.target.value)}
-                              placeholder="0"
-                              className="text-sm"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Highways Traveled</Label>
-                            <Input
-                              value={entry.highwaysTraveled}
-                              onChange={(e) => updateMileageEntry(entry.id, 'highwaysTraveled', e.target.value)}
-                              placeholder="I-80, I-25"
-                              className="text-sm"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Miles Loaded</Label>
-                            <Input
-                              type="number"
-                              value={entry.milesLoaded}
-                              onChange={(e) => updateMileageEntry(entry.id, 'milesLoaded', e.target.value)}
-                              placeholder="0"
-                              className="text-sm"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Miles Empty</Label>
-                            <Input
-                              type="number"
-                              value={entry.milesEmpty}
-                              onChange={(e) => updateMileageEntry(entry.id, 'milesEmpty', e.target.value)}
-                              placeholder="0"
-                              className="text-sm"
-                            />
-                          </div>
                         </div>
                       </div>
                     ))}
@@ -576,9 +520,145 @@ export default function ExpensesReport() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Right Column - Mileage Log */}
+            <div className="lg:col-span-1">
+              <Card className="sticky top-6">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center">
+                      <Clock className="w-5 h-5 mr-2 text-orange-600" />
+                      Mileage Log
+                    </CardTitle>
+                    <Button onClick={addMileageEntry} size="sm" variant="outline">
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    {mileageEntries.map((entry) => (
+                      <div key={entry.id} className="p-3 border rounded-lg space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline" className="text-xs">
+                            Entry {mileageEntries.indexOf(entry) + 1}
+                          </Badge>
+                          {mileageEntries.length > 1 && (
+                            <Button 
+                              onClick={() => removeMileageEntry(entry.id)}
+                              size="sm" 
+                              variant="ghost"
+                              className="text-red-600 hover:text-red-700 p-1 h-auto"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+
+                        <div>
+                          <Label htmlFor={`mile-date-${entry.id}`} className="text-xs">Date</Label>
+                          <Input
+                            id={`mile-date-${entry.id}`}
+                            type="date"
+                            value={entry.date}
+                            onChange={(e) => updateMileageEntry(entry.id, "date", e.target.value)}
+                            className="text-xs h-8"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor={`mile-odometer-${entry.id}`} className="text-xs">Odometer</Label>
+                          <Input
+                            id={`mile-odometer-${entry.id}`}
+                            type="number"
+                            value={entry.odometer}
+                            onChange={(e) => updateMileageEntry(entry.id, "odometer", e.target.value)}
+                            placeholder="Miles"
+                            className="text-xs h-8"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor={`mile-location-${entry.id}`} className="text-xs">Location</Label>
+                          <Input
+                            id={`mile-location-${entry.id}`}
+                            value={entry.location}
+                            onChange={(e) => updateMileageEntry(entry.id, "location", e.target.value)}
+                            placeholder="City, State"
+                            className="text-xs h-8"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor={`mile-miles-${entry.id}`} className="text-xs">Miles Traveled</Label>
+                          <Input
+                            id={`mile-miles-${entry.id}`}
+                            type="number"
+                            value={entry.miles}
+                            onChange={(e) => updateMileageEntry(entry.id, "miles", e.target.value)}
+                            placeholder="0"
+                            className="text-xs h-8"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Separator className="my-4" />
+
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-sm text-gray-600">Total Gallons</div>
+                      <div className="text-xl font-bold text-green-600">
+                        {fuelEntries.reduce((total, entry) => 
+                          total + (parseFloat(entry.gallons) || 0), 0
+                        ).toFixed(2)} gal
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-sm text-gray-600">Total Cost</div>
+                      <div className="text-xl font-bold text-green-600">
+                        ${fuelEntries.reduce((total, entry) => 
+                          total + (parseFloat(entry.cost) || 0), 0
+                        ).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Summary Section for PDF */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="text-center">
+              <div className="text-sm text-gray-600">Total Gallons</div>
+              <div className="text-xl font-bold text-green-600">
+                {fuelEntries.reduce((total, entry) => 
+                  total + (parseFloat(entry.gallons) || 0), 0
+                ).toFixed(2)} gal
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-gray-600">Total Fuel Cost</div>
+              <div className="text-xl font-bold text-green-600">
+                ${fuelEntries.reduce((total, entry) => 
+                  total + (parseFloat(entry.cost) || 0), 0
+                ).toFixed(2)}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-gray-600">Total Misc. Expenses</div>
+              <div className="text-xl font-bold text-purple-600">
+                ${miscEntries.reduce((total, entry) => 
+                  total + (parseFloat(entry.amount) || 0), 0
+                ).toFixed(2)}
+              </div>
+            </div>
+          </div>
           </div>
         </div>
-      </div>
-    </>
+      </main>
+    </div>
   );
 }
