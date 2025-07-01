@@ -1,32 +1,14 @@
-
-import { useState, useRef, useEffect } from "react";
-import { Header } from "@/components/header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { 
-  Plus, 
-  Trash2, 
-  MapPin, 
-  Clock, 
-  Route,
-  Navigation
-} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { MapPin, Route, Truck } from "lucide-react";
 import { TOMTOM_CONFIG } from "@/config/maps";
 
-// Dynamic import for TomTom SDK
-const loadTomTomSDK = async () => {
-  try {
-    const tt = await import('@tomtom-international/web-sdk-maps');
-    return tt.default || tt;
-  } catch (error) {
-    console.error('Error loading TomTom SDK:', error);
-    return null;
-  }
-};
+// TomTom SDK imports
+import * as tt from '@tomtom-international/web-sdk-maps';
+import * as ttServices from '@tomtom-international/web-sdk-services';
 
 interface RouteData {
   id: number;
@@ -70,28 +52,13 @@ export default function Routes() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
-  const [mapError, setMapError] = useState<string>('');
 
   // Initialize map
   useEffect(() => {
-    const initializeMap = async () => {
-      if (!mapRef.current || mapInstance.current) return;
+    if (mapRef.current && !mapInstance.current && TOMTOM_CONFIG.apiKey) {
+      console.log("Initializing TomTom map with API key:", TOMTOM_CONFIG.apiKey);
 
       try {
-        setMapError('');
-        console.log("Initializing TomTom map...");
-        
-        const tt = await loadTomTomSDK();
-        if (!tt) {
-          setMapError('Failed to load TomTom SDK');
-          return;
-        }
-
-        if (!TOMTOM_CONFIG.apiKey) {
-          setMapError('TomTom API key not configured');
-          return;
-        }
-
         mapInstance.current = tt.map({
           key: TOMTOM_CONFIG.apiKey,
           container: mapRef.current,
@@ -101,28 +68,19 @@ export default function Routes() {
         });
 
         mapInstance.current.on('load', () => {
-          console.log('Map loaded successfully');
+          console.log("TomTom map loaded successfully");
           setIsMapLoaded(true);
         });
 
         mapInstance.current.on('error', (error: any) => {
-          console.error('Map error:', error);
-          setMapError('Map failed to load');
+          console.error("TomTom map error:", error);
         });
 
       } catch (error) {
-        console.error('Error initializing map:', error);
-        setMapError('Failed to initialize map');
+        console.error("Error initializing TomTom map:", error);
       }
-    };
+    }
 
-    // Add a small delay to ensure the DOM is ready
-    const timer = setTimeout(initializeMap, 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Clean up map on unmount
-  useEffect(() => {
     return () => {
       if (mapInstance.current) {
         mapInstance.current.remove();
@@ -131,24 +89,126 @@ export default function Routes() {
     };
   }, []);
 
-  const addRoute = () => {
+  // Calculate route using TomTom API
+  const calculateRoute = async (origin: string, destination: string) => {
+    if (!TOMTOM_CONFIG.apiKey || !isMapLoaded) {
+      console.error("TomTom API key not available or map not loaded");
+      return;
+    }
+
+    try {
+      // Geocode origin and destination
+      const originResponse = await ttServices.services.fuzzySearch({
+        key: TOMTOM_CONFIG.apiKey,
+        query: origin
+      });
+
+      const destinationResponse = await ttServices.services.fuzzySearch({
+        key: TOMTOM_CONFIG.apiKey,
+        query: destination
+      });
+
+      if (originResponse.results.length > 0 && destinationResponse.results.length > 0) {
+        const originCoords = originResponse.results[0].position;
+        const destinationCoords = destinationResponse.results[0].position;
+
+        // Calculate route with truck parameters
+        const routeResponse = await ttServices.services.calculateRoute({
+          key: TOMTOM_CONFIG.apiKey,
+          locations: `${originCoords.lat},${originCoords.lon}:${destinationCoords.lat},${destinationCoords.lon}`,
+          travelMode: 'truck',
+          vehicleMaxSpeed: TOMTOM_CONFIG.truckOptions.vehicleMaxSpeed,
+          vehicleWeight: TOMTOM_CONFIG.truckOptions.vehicleWeight,
+          vehicleAxleWeight: TOMTOM_CONFIG.truckOptions.vehicleAxleWeight,
+          vehicleLength: TOMTOM_CONFIG.truckOptions.vehicleLength,
+          vehicleWidth: TOMTOM_CONFIG.truckOptions.vehicleWidth,
+          vehicleHeight: TOMTOM_CONFIG.truckOptions.vehicleHeight,
+          vehicleCommercial: TOMTOM_CONFIG.truckOptions.vehicleCommercial
+        });
+
+        if (routeResponse.routes && routeResponse.routes.length > 0) {
+          const route = routeResponse.routes[0];
+
+          // Clear existing layers
+          if (mapInstance.current.getSource('route')) {
+            mapInstance.current.removeLayer('route');
+            mapInstance.current.removeSource('route');
+          }
+
+          // Add route to map
+          mapInstance.current.addSource('route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: route.legs[0].points
+            }
+          });
+
+          mapInstance.current.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round'
+            },
+            paint: {
+              'line-color': '#3b82f6',
+              'line-width': 4
+            }
+          });
+
+          // Add markers
+          new tt.Marker({ color: 'green' })
+            .setLngLat([originCoords.lon, originCoords.lat])
+            .addTo(mapInstance.current);
+
+          new tt.Marker({ color: 'red' })
+            .setLngLat([destinationCoords.lon, destinationCoords.lat])
+            .addTo(mapInstance.current);
+
+          // Fit map to route bounds
+          const bounds = new tt.LngLatBounds();
+          bounds.extend([originCoords.lon, originCoords.lat]);
+          bounds.extend([destinationCoords.lon, destinationCoords.lat]);
+          mapInstance.current.fitBounds(bounds, { padding: 50 });
+
+          return {
+            distance: `${Math.round(route.summary.lengthInMeters / 1000)} km`,
+            duration: `${Math.round(route.summary.travelTimeInSeconds / 60)} min`
+          };
+        }
+      }
+    } catch (error) {
+      console.error("Error calculating route:", error);
+    }
+    return null;
+  };
+
+  const handleCreateRoute = async () => {
     if (newRoute.name && newRoute.origin && newRoute.destination) {
+      const routeData = await calculateRoute(newRoute.origin, newRoute.destination);
+
       const route: RouteData = {
         id: routes.length + 1,
         name: newRoute.name,
         origin: newRoute.origin,
         destination: newRoute.destination,
-        distance: "Calculating...",
-        duration: "Calculating...",
+        distance: routeData?.distance || "Calculating...",
+        duration: routeData?.duration || "Calculating...",
         status: 'planned'
       };
+
       setRoutes([...routes, route]);
       setNewRoute({ name: '', origin: '', destination: '' });
+      setSelectedRoute(route);
     }
   };
 
-  const deleteRoute = (id: number) => {
-    setRoutes(routes.filter(route => route.id !== id));
+  const handleRouteSelect = (route: RouteData) => {
+    setSelectedRoute(route);
+    calculateRoute(route.origin, route.destination);
   };
 
   const getStatusColor = (status: string) => {
@@ -161,170 +221,147 @@ export default function Routes() {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <Header title="Routes Management" />
-      
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Routes List */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Route className="h-5 w-5" />
-              Routes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Add New Route Form */}
-              <div className="grid gap-3 p-4 border rounded-lg bg-gray-50">
-                <div className="grid gap-2">
-                  <Label htmlFor="routeName">Route Name</Label>
-                  <Input
-                    id="routeName"
-                    placeholder="Enter route name"
-                    value={newRoute.name}
-                    onChange={(e) => setNewRoute(prev => ({ ...prev, name: e.target.value }))}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="origin">Origin</Label>
-                  <Input
-                    id="origin"
-                    placeholder="Starting location"
-                    value={newRoute.origin}
-                    onChange={(e) => setNewRoute(prev => ({ ...prev, origin: e.target.value }))}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="destination">Destination</Label>
-                  <Input
-                    id="destination"
-                    placeholder="Ending location"
-                    value={newRoute.destination}
-                    onChange={(e) => setNewRoute(prev => ({ ...prev, destination: e.target.value }))}
-                  />
-                </div>
-                <Button onClick={addRoute} className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Route
-                </Button>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Route Planning</h1>
+        <p className="text-gray-600">Plan and manage your truck routes efficiently</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Route Creation Form */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Route className="w-5 h-5" />
+                Create New Route
+              </CardTitle>
+              <CardDescription>
+                Plan a new truck route with optimized paths
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="route-name">Route Name</Label>
+                <Input
+                  id="route-name"
+                  placeholder="Enter route name"
+                  value={newRoute.name}
+                  onChange={(e) => setNewRoute({ ...newRoute, name: e.target.value })}
+                />
               </div>
+              <div>
+                <Label htmlFor="origin">Origin</Label>
+                <Input
+                  id="origin"
+                  placeholder="Enter starting location"
+                  value={newRoute.origin}
+                  onChange={(e) => setNewRoute({ ...newRoute, origin: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="destination">Destination</Label>
+                <Input
+                  id="destination"
+                  placeholder="Enter destination"
+                  value={newRoute.destination}
+                  onChange={(e) => setNewRoute({ ...newRoute, destination: e.target.value })}
+                />
+              </div>
+              <Button 
+                onClick={handleCreateRoute}
+                className="w-full"
+                disabled={!newRoute.name || !newRoute.origin || !newRoute.destination}
+              >
+                <Truck className="w-4 h-4 mr-2" />
+                Calculate Route
+              </Button>
+            </CardContent>
+          </Card>
 
-              <Separator />
-
-              {/* Routes List */}
+          {/* Routes List */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Routes</CardTitle>
+              <CardDescription>
+                Click on a route to view it on the map
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-3">
                 {routes.map((route) => (
-                  <div 
-                    key={route.id} 
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      selectedRoute?.id === route.id ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'
+                  <div
+                    key={route.id}
+                    className={`p-4 border rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
+                      selectedRoute?.id === route.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
                     }`}
-                    onClick={() => setSelectedRoute(route)}
+                    onClick={() => handleRouteSelect(route)}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2 flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium">{route.name}</h3>
-                          <Badge className={getStatusColor(route.status)}>
-                            {route.status}
-                          </Badge>
-                        </div>
-                        <div className="space-y-1 text-sm text-gray-600">
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            From: {route.origin}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Navigation className="h-3 w-3" />
-                            To: {route.destination}
-                          </div>
-                          <div className="flex items-center gap-4 mt-2">
-                            <span className="flex items-center gap-1">
-                              <Route className="h-3 w-3" />
-                              {route.distance}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {route.duration}
-                            </span>
-                          </div>
-                        </div>
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-semibold">{route.name}</h3>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(route.status)}`}>
+                        {route.status}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        From: {route.origin}
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteRoute(route.id);
-                        }}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        To: {route.destination}
+                      </div>
+                      <div className="flex gap-4 text-xs">
+                        <span>Distance: {route.distance}</span>
+                        <span>Duration: {route.duration}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        </div>
 
-              {routes.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <Route className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No routes created yet</p>
-                  <p className="text-sm">Add your first route using the form above</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Map Preview */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Route Preview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {selectedRoute && (
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <h4 className="font-medium text-blue-900">{selectedRoute.name}</h4>
-                  <p className="text-sm text-blue-700">
-                    {selectedRoute.origin} → {selectedRoute.destination}
-                  </p>
-                </div>
-              )}
-              
-              <div className="relative">
-                <div 
-                  ref={mapRef} 
-                  className="w-full h-96 rounded-lg border bg-gray-100 flex items-center justify-center"
-                >
-                  {mapError ? (
-                    <div className="text-center text-gray-500">
-                      <MapPin className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>Map Preview</p>
-                      <p className="text-sm text-red-500">{mapError}</p>
+        {/* Map */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Route Map</CardTitle>
+              <CardDescription>
+                Interactive map showing your truck routes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div 
+                ref={mapRef}
+                className="w-full h-96 rounded-lg border border-gray-200"
+                style={{ minHeight: '400px' }}
+              >
+                {!isMapLoaded && (
+                  <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                      <p className="text-sm text-gray-600">Loading TomTom Map...</p>
                     </div>
-                  ) : !isMapLoaded ? (
-                    <div className="text-center text-gray-500">
-                      <MapPin className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>Loading Map...</p>
-                    </div>
-                  ) : null}
-                </div>
+                  </div>
+                )}
               </div>
 
-              {!selectedRoute && (
-                <div className="text-center text-gray-500 py-8">
-                  <p>Select a route to view on map</p>
+              {selectedRoute && (
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-semibold text-blue-900 mb-2">Selected Route: {selectedRoute.name}</h4>
+                  <div className="text-sm text-blue-800 space-y-1">
+                    <p>From: {selectedRoute.origin}</p>
+                    <p>To: {selectedRoute.destination}</p>
+                    <p>Distance: {selectedRoute.distance} | Duration: {selectedRoute.duration}</p>
+                  </div>
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
