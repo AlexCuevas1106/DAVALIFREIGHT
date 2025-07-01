@@ -67,7 +67,9 @@ export default function Routes() {
   useEffect(() => {
     const initTomTomMap = async () => {
       try {
-        if (mapRef.current && TOMTOM_CONFIG.apiKey !== "YOUR_TOMTOM_API_KEY_HERE") {
+        if (mapRef.current && TOMTOM_CONFIG.apiKey && TOMTOM_CONFIG.apiKey !== "YOUR_TOMTOM_API_KEY_HERE") {
+          console.log("Initializing TomTom map with API key:", TOMTOM_CONFIG.apiKey.substring(0, 8) + "...");
+          
           const mapInstance = tt.map({
             key: TOMTOM_CONFIG.apiKey,
             container: mapRef.current,
@@ -79,13 +81,28 @@ export default function Routes() {
             },
           });
 
-          setMap(mapInstance);
-          setIsTomTomLoaded(true);
+          mapInstance.on('load', () => {
+            console.log("TomTom map loaded successfully");
+            setMap(mapInstance);
+            setIsTomTomLoaded(true);
+            
+            // Add navigation controls
+            mapInstance.addControl(new tt.NavigationControl());
+            mapInstance.addControl(new tt.FullscreenControl());
+          });
 
-          // Add navigation controls
-          mapInstance.addControl(new tt.NavigationControl());
-          mapInstance.addControl(new tt.FullscreenControl());
+          mapInstance.on('error', (error) => {
+            console.error("TomTom map error:", error);
+            setIsTomTomLoaded(false);
+            toast({
+              title: "Maps Error",
+              description: "Failed to load TomTom Maps. Check API key and internet connection.",
+              variant: "destructive",
+            });
+          });
+
         } else {
+          console.log("TomTom API key not configured");
           setIsTomTomLoaded(false);
           toast({
             title: "TomTom Configuration",
@@ -94,19 +111,21 @@ export default function Routes() {
           });
         }
       } catch (error) {
-        console.error("Error loading TomTom Maps:", error);
+        console.error("Error initializing TomTom Maps:", error);
         toast({
           title: "Maps Error",
-          description: "Failed to load TomTom Maps. Please check your API key.",
+          description: "Failed to initialize TomTom Maps. Please check your API key.",
           variant: "destructive",
         });
         setIsTomTomLoaded(false);
       }
     };
 
-    initTomTomMap();
+    // Add a small delay to ensure the DOM is ready
+    const timeoutId = setTimeout(initTomTomMap, 100);
 
     return () => {
+      clearTimeout(timeoutId);
       if (map) {
         map.remove();
       }
