@@ -1,19 +1,18 @@
-
 // TomTom Maps configuration for truck routing
 export const TOMTOM_CONFIG = {
   // Replace this with your actual TomTom API key
   // Get your API key from: https://developer.tomtom.com/
-  apiKey: process.env.VITE_TOMTOM_API_KEY || "YOUR_TOMTOM_API_KEY_HERE",
-  
+  apiKey: process.env.VITE_TOMTOM_API_KEY || "rIKRakv4vEoPwsat6J3VQnKa4MrwmEDu",
+
   // Default map center (USA)
   defaultCenter: { lat: 39.8283, lng: -98.5795 },
-  
+
   // Default zoom level
   defaultZoom: 4,
-  
+
   // TomTom Map style
   mapStyle: "main",
-  
+
   // Truck routing parameters
   truckOptions: {
     vehicleMaxSpeed: 90, // km/h
@@ -24,5 +23,5 @@ export const TOMTOM_CONFIG = {
     vehicleHeight: 4.0, // meters
     vehicleCommercial: true,
     vehicleLoadType: "USHazmatClass2,USHazmatClass8,USHazmatClass9",
-  }
+  },
 };
