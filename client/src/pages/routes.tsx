@@ -1,121 +1,175 @@
-import React, { useState, useEffect, useRef } from "react";
+
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Route, Truck } from "lucide-react";
-import { TOMTOM_CONFIG } from "@/config/maps";
-
-// TomTom SDK imports
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { MapPin, Route, Clock, Truck, Plus, Search } from "lucide-react";
 import * as tt from '@tomtom-international/web-sdk-maps';
 import * as ttServices from '@tomtom-international/web-sdk-services';
-
-interface RouteData {
-  id: number;
-  name: string;
-  origin: string;
-  destination: string;
-  distance: string;
-  duration: string;
-  status: 'active' | 'completed' | 'planned';
-}
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { TOMTOM_CONFIG } from "@/config/maps";
+import type { Route as RouteType, InsertRoute } from "@shared/schema";
 
 export default function Routes() {
-  const [routes, setRoutes] = useState<RouteData[]>([
-    {
-      id: 1,
-      name: "Route A1",
-      origin: "Los Angeles, CA",
-      destination: "Phoenix, AZ",
-      distance: "372 mi",
-      duration: "5h 30m",
-      status: "active"
-    },
-    {
-      id: 2,
-      name: "Route B2",
-      origin: "Chicago, IL",
-      destination: "Detroit, MI",
-      distance: "283 mi",
-      duration: "4h 15m",
-      status: "planned"
-    }
-  ]);
+  const { toast } = useToast();
+  const [origin, setOrigin] = useState("");
+  const [destination, setDestination] = useState("");
+  const [routeName, setRouteName] = useState("");
+  const [selectedRoute, setSelectedRoute] = useState<RouteType | null>(null);
+  const [map, setMap] = useState<tt.Map | null>(null);
+  const [isTomTomLoaded, setIsTomTomLoaded] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
 
-  const [newRoute, setNewRoute] = useState({
-    name: '',
-    origin: '',
-    destination: ''
+  const { data: routes = [], isLoading } = useQuery({
+    queryKey: ["/api/routes"],
   });
 
-  const [selectedRoute, setSelectedRoute] = useState<RouteData | null>(null);
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<any>(null);
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
-
-  // Initialize map
-  useEffect(() => {
-    if (mapRef.current && !mapInstance.current && TOMTOM_CONFIG.apiKey) {
-      console.log("Initializing TomTom map with API key:", TOMTOM_CONFIG.apiKey);
-
-      try {
-        mapInstance.current = tt.map({
-          key: TOMTOM_CONFIG.apiKey,
-          container: mapRef.current,
-          center: [TOMTOM_CONFIG.defaultCenter.lng, TOMTOM_CONFIG.defaultCenter.lat],
-          zoom: TOMTOM_CONFIG.defaultZoom,
-          style: TOMTOM_CONFIG.mapStyle
-        });
-
-        mapInstance.current.on('load', () => {
-          console.log("TomTom map loaded successfully");
-          setIsMapLoaded(true);
-        });
-
-        mapInstance.current.on('error', (error: any) => {
-          console.error("TomTom map error:", error);
-        });
-
-      } catch (error) {
-        console.error("Error initializing TomTom map:", error);
+  const createRouteMutation = useMutation({
+    mutationFn: async (routeData: InsertRoute) => {
+      const response = await fetch("/api/routes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(routeData),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to create route");
       }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Route created",
+        description: "The truck route has been created successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
+      setOrigin("");
+      setDestination("");
+      setRouteName("");
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Could not create route",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Initialize TomTom Map
+  useEffect(() => {
+    const initTomTomMap = async () => {
+      try {
+        if (mapRef.current && TOMTOM_CONFIG.apiKey) {
+          console.log("Initializing TomTom map...");
+          
+          const mapInstance = tt.map({
+            key: TOMTOM_CONFIG.apiKey,
+            container: mapRef.current,
+            center: [TOMTOM_CONFIG.defaultCenter.lng, TOMTOM_CONFIG.defaultCenter.lat],
+            zoom: TOMTOM_CONFIG.defaultZoom,
+            stylesVisibility: {
+              trafficIncidents: true,
+              trafficFlow: true,
+            },
+          });
+
+          mapInstance.on('load', () => {
+            console.log("TomTom map loaded successfully");
+            setMap(mapInstance);
+            setIsTomTomLoaded(true);
+            
+            // Add navigation controls
+            mapInstance.addControl(new tt.NavigationControl());
+            mapInstance.addControl(new tt.FullscreenControl());
+          });
+
+          mapInstance.on('error', (error) => {
+            console.error("TomTom map error:", error);
+            setIsTomTomLoaded(false);
+          });
+
+        } else {
+          console.log("Map container not ready or API key missing");
+          setIsTomTomLoaded(false);
+        }
+      } catch (error) {
+        console.error("Error initializing TomTom Maps:", error);
+        setIsTomTomLoaded(false);
+      }
+    };
+
+    if (mapRef.current) {
+      initTomTomMap();
     }
 
     return () => {
-      if (mapInstance.current) {
-        mapInstance.current.remove();
-        mapInstance.current = null;
+      if (map) {
+        map.remove();
       }
     };
-  }, []);
+  }, [mapRef.current]);
 
-  // Calculate route using TomTom API
-  const calculateRoute = async (origin: string, destination: string) => {
-    if (!TOMTOM_CONFIG.apiKey || !isMapLoaded) {
-      console.error("TomTom API key not available or map not loaded");
+  const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number }> => {
+    try {
+      if (TOMTOM_CONFIG.apiKey && TOMTOM_CONFIG.apiKey !== "YOUR_TOMTOM_API_KEY_HERE") {
+        console.log("Geocoding address:", address);
+        
+        const response = await ttServices.services.geocode({
+          key: TOMTOM_CONFIG.apiKey,
+          query: address,
+          limit: 1,
+        });
+
+        console.log("Geocoding response:", response);
+
+        if (response.results && response.results.length > 0) {
+          const location = response.results[0].position;
+          return {
+            lat: location.lat,
+            lng: location.lon,
+          };
+        }
+      }
+    } catch (error) {
+      console.error("Geocoding error:", error);
+    }
+
+    // Fallback coordinates (Miami, FL)
+    console.log("Using fallback coordinates for:", address);
+    return { lat: 25.7617, lng: -80.1918 };
+  };
+
+  const calculateTruckRoute = async () => {
+    if (!origin || !destination || !routeName) {
+      toast({
+        title: "Required fields",
+        description: "Please complete all fields",
+        variant: "destructive",
+      });
       return;
     }
 
     try {
-      // Geocode origin and destination
-      const originResponse = await ttServices.services.fuzzySearch({
-        key: TOMTOM_CONFIG.apiKey,
-        query: origin
-      });
+      if (isTomTomLoaded && TOMTOM_CONFIG.apiKey !== "YOUR_TOMTOM_API_KEY_HERE") {
+        // Get coordinates for origin and destination
+        const originCoords = await geocodeAddress(origin);
+        const destCoords = await geocodeAddress(destination);
 
-      const destinationResponse = await ttServices.services.fuzzySearch({
-        key: TOMTOM_CONFIG.apiKey,
-        query: destination
-      });
-
-      if (originResponse.results.length > 0 && destinationResponse.results.length > 0) {
-        const originCoords = originResponse.results[0].position;
-        const destinationCoords = destinationResponse.results[0].position;
-
-        // Calculate route with truck parameters
+        // Calculate truck route using TomTom Routing API
         const routeResponse = await ttServices.services.calculateRoute({
           key: TOMTOM_CONFIG.apiKey,
-          locations: `${originCoords.lat},${originCoords.lon}:${destinationCoords.lat},${destinationCoords.lon}`,
+          locations: [
+            [originCoords.lng, originCoords.lat],
+            [destCoords.lng, destCoords.lat]
+          ],
           travelMode: 'truck',
           vehicleMaxSpeed: TOMTOM_CONFIG.truckOptions.vehicleMaxSpeed,
           vehicleWeight: TOMTOM_CONFIG.truckOptions.vehicleWeight,
@@ -123,246 +177,486 @@ export default function Routes() {
           vehicleLength: TOMTOM_CONFIG.truckOptions.vehicleLength,
           vehicleWidth: TOMTOM_CONFIG.truckOptions.vehicleWidth,
           vehicleHeight: TOMTOM_CONFIG.truckOptions.vehicleHeight,
-          vehicleCommercial: TOMTOM_CONFIG.truckOptions.vehicleCommercial
+          vehicleCommercial: TOMTOM_CONFIG.truckOptions.vehicleCommercial,
+          vehicleLoadType: TOMTOM_CONFIG.truckOptions.vehicleLoadType,
+          traffic: true,
+          routeType: 'eco', // Eco-friendly routing for trucks
+          instructionsType: 'text',
         });
 
         if (routeResponse.routes && routeResponse.routes.length > 0) {
           const route = routeResponse.routes[0];
+          const summary = route.summary;
+          
+          const distance = Math.round(summary.lengthInMeters / 1000); // Convert to km
+          const duration = Math.round(summary.travelTimeInSeconds / 60); // Convert to minutes
 
-          // Clear existing layers
-          if (mapInstance.current.getSource('route')) {
-            mapInstance.current.removeLayer('route');
-            mapInstance.current.removeSource('route');
+          // Display route on map
+          if (map) {
+            // Clear existing markers and routes
+            map.getMarkers().forEach(marker => marker.remove());
+            map.getLayers().forEach(layer => {
+              if (layer.getId && layer.getId().includes('route')) {
+                map.removeLayer(layer);
+              }
+            });
+
+            // Add origin marker
+            new tt.Marker({ color: 'green' })
+              .setLngLat([originCoords.lng, originCoords.lat])
+              .setPopup(new tt.Popup().setHTML(`<strong>Origin:</strong><br>${origin}`))
+              .addTo(map);
+
+            // Add destination marker
+            new tt.Marker({ color: 'red' })
+              .setLngLat([destCoords.lng, destCoords.lat])
+              .setPopup(new tt.Popup().setHTML(`<strong>Destination:</strong><br>${destination}`))
+              .addTo(map);
+
+            // Add route line using TomTom's built-in method
+            const routeGeoJson = route.legs[0].points.map(point => [point.longitude, point.latitude]);
+            
+            // Remove existing route layers
+            const layers = map.getStyle().layers;
+            layers.forEach(layer => {
+              if (layer.id && layer.id.includes('route')) {
+                map.removeLayer(layer.id);
+              }
+            });
+
+            // Add new route source and layer
+            if (!map.getSource('truck-route-source')) {
+              map.addSource('truck-route-source', {
+                'type': 'geojson',
+                'data': {
+                  'type': 'Feature',
+                  'properties': {},
+                  'geometry': {
+                    'type': 'LineString',
+                    'coordinates': routeGeoJson
+                  }
+                }
+              });
+            }
+
+            map.addLayer({
+              'id': 'truck-route-layer',
+              'type': 'line',
+              'source': 'truck-route-source',
+              'layout': {
+                'line-join': 'round',
+                'line-cap': 'round'
+              },
+              'paint': {
+                'line-color': '#FF6B35',
+                'line-width': 6,
+                'line-opacity': 0.8
+              }
+            });
+
+            // Fit map to route bounds
+            const bounds = new tt.LngLatBounds();
+            routeGeoJson.forEach(coord => bounds.extend(coord));
+            map.fitBounds(bounds, { padding: 50 });
           }
 
-          // Add route to map
-          mapInstance.current.addSource('route', {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              properties: {},
-              geometry: route.legs[0].points
-            }
-          });
-
-          mapInstance.current.addLayer({
-            id: 'route',
-            type: 'line',
-            source: 'route',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round'
-            },
-            paint: {
-              'line-color': '#3b82f6',
-              'line-width': 4
-            }
-          });
-
-          // Add markers
-          new tt.Marker({ color: 'green' })
-            .setLngLat([originCoords.lon, originCoords.lat])
-            .addTo(mapInstance.current);
-
-          new tt.Marker({ color: 'red' })
-            .setLngLat([destinationCoords.lon, destinationCoords.lat])
-            .addTo(mapInstance.current);
-
-          // Fit map to route bounds
-          const bounds = new tt.LngLatBounds();
-          bounds.extend([originCoords.lon, originCoords.lat]);
-          bounds.extend([destinationCoords.lon, destinationCoords.lat]);
-          mapInstance.current.fitBounds(bounds, { padding: 50 });
-
-          return {
-            distance: `${Math.round(route.summary.lengthInMeters / 1000)} km`,
-            duration: `${Math.round(route.summary.travelTimeInSeconds / 60)} min`
+          const routeData: InsertRoute = {
+            name: routeName,
+            origin: origin,
+            destination: destination,
+            originLat: originCoords.lat,
+            originLng: originCoords.lng,
+            destinationLat: destCoords.lat,
+            destinationLng: destCoords.lng,
+            distance,
+            estimatedDuration: duration,
+            driverId: 1,
+            status: "planned",
           };
+
+          createRouteMutation.mutate(routeData);
         }
+      } else {
+        // Fallback to basic geocoding method
+        const originCoords = await geocodeAddress(origin);
+        const destCoords = await geocodeAddress(destination);
+        
+        const distance = calculateDistance(
+          originCoords.lat, originCoords.lng,
+          destCoords.lat, destCoords.lng
+        );
+        
+        const estimatedDuration = Math.round(distance * 1.5); // Slower for trucks
+
+        const routeData: InsertRoute = {
+          name: routeName,
+          origin,
+          destination,
+          originLat: originCoords.lat,
+          originLng: originCoords.lng,
+          destinationLat: destCoords.lat,
+          destinationLng: destCoords.lng,
+          distance: Math.round(distance),
+          estimatedDuration,
+          driverId: 1,
+          status: "planned",
+        };
+
+        createRouteMutation.mutate(routeData);
       }
     } catch (error) {
-      console.error("Error calculating route:", error);
-    }
-    return null;
-  };
-
-  const handleCreateRoute = async () => {
-    if (newRoute.name && newRoute.origin && newRoute.destination) {
-      const routeData = await calculateRoute(newRoute.origin, newRoute.destination);
-
-      const route: RouteData = {
-        id: routes.length + 1,
-        name: newRoute.name,
-        origin: newRoute.origin,
-        destination: newRoute.destination,
-        distance: routeData?.distance || "Calculating...",
-        duration: routeData?.duration || "Calculating...",
-        status: 'planned'
-      };
-
-      setRoutes([...routes, route]);
-      setNewRoute({ name: '', origin: '', destination: '' });
-      setSelectedRoute(route);
+      console.error("Route calculation error:", error);
+      toast({
+        title: "Error",
+        description: "Could not calculate truck route. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleRouteSelect = (route: RouteData) => {
-    setSelectedRoute(route);
-    calculateRoute(route.origin, route.destination);
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Radio de la Tierra en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  const displayRouteOnMap = async (route: RouteType) => {
+    if (!map || !isTomTomLoaded || !route.originLat || !route.originLng || !route.destinationLat || !route.destinationLng) {
+      console.log("Map not ready or route coordinates missing");
+      return;
+    }
+
+    try {
+      // Clear existing markers
+      const markers = map.getMarkers();
+      markers.forEach(marker => marker.remove());
+
+      // Add origin and destination markers
+      new tt.Marker({ color: 'green' })
+        .setLngLat([route.originLng, route.originLat])
+        .setPopup(new tt.Popup().setHTML(`<strong>Origin:</strong><br>${route.origin}`))
+        .addTo(map);
+
+      new tt.Marker({ color: 'red' })
+        .setLngLat([route.destinationLng, route.destinationLat])
+        .setPopup(new tt.Popup().setHTML(`<strong>Destination:</strong><br>${route.destination}`))
+        .addTo(map);
+
+      // Fit map to show both points
+      const bounds = new tt.LngLatBounds();
+      bounds.extend([route.originLng, route.originLat]);
+      bounds.extend([route.destinationLng, route.destinationLat]);
+      map.fitBounds(bounds, { padding: 50 });
+
+      // Draw a simple line between points (as fallback)
+      const lineCoords = [
+        [route.originLng, route.originLat],
+        [route.destinationLng, route.destinationLat]
+      ];
+
+      // Remove existing route layer if it exists
+      if (map.getLayer('simple-route-line')) {
+        map.removeLayer('simple-route-line');
+      }
+      if (map.getSource('simple-route-source')) {
+        map.removeSource('simple-route-source');
+      }
+
+      map.addSource('simple-route-source', {
+        'type': 'geojson',
+        'data': {
+          'type': 'Feature',
+          'properties': {},
+          'geometry': {
+            'type': 'LineString',
+            'coordinates': lineCoords
+          }
+        }
+      });
+
+      map.addLayer({
+        'id': 'simple-route-line',
+        'type': 'line',
+        'source': 'simple-route-source',
+        'layout': {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        'paint': {
+          'line-color': '#FF6B35',
+          'line-width': 4,
+          'line-opacity': 0.8
+        }
+      });
+
+    } catch (error) {
+      console.error("Error displaying route:", error);
+    }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'planned': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "planned": return "bg-blue-100 text-blue-800";
+      case "active": return "bg-green-100 text-green-800";
+      case "completed": return "bg-gray-100 text-gray-800";
+      default: return "bg-blue-100 text-blue-800";
     }
   };
 
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "planned": return "Planned";
+      case "active": return "Active";
+      case "completed": return "Completed";
+      default: return "Planned";
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Route Planning</h1>
-        <p className="text-gray-600">Plan and manage your truck routes efficiently</p>
+    <div className="p-6 space-y-6 ml-64">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Truck Transportation Routes</h1>
+          <p className="text-muted-foreground">
+            Plan and manage your truck shipment routes with TomTom
+          </p>
+        </div>
+        <Button onClick={() => setSelectedRoute(null)} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          New Truck Route
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Route Creation Form */}
-        <div className="space-y-6">
+      <Tabs defaultValue="create" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="create">Create Truck Route</TabsTrigger>
+          <TabsTrigger value="routes">Existing Routes</TabsTrigger>
+          <TabsTrigger value="map">Route Map</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="create" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Route className="w-5 h-5" />
-                Create New Route
+                <Truck className="h-5 w-5" />
+                Plan New Truck Route
               </CardTitle>
               <CardDescription>
-                Plan a new truck route with optimized paths
+                Enter origin and destination to calculate the best truck route with TomTom
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="route-name">Route Name</Label>
-                <Input
-                  id="route-name"
-                  placeholder="Enter route name"
-                  value={newRoute.name}
-                  onChange={(e) => setNewRoute({ ...newRoute, name: e.target.value })}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="routeName">Route Name</Label>
+                  <Input
+                    id="routeName"
+                    placeholder="e.g., Miami - Orlando Truck Route"
+                    value={routeName}
+                    onChange={(e) => setRouteName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="origin">Origin</Label>
+                  <Input
+                    id="origin"
+                    placeholder="e.g., Miami, FL"
+                    value={origin}
+                    onChange={(e) => setOrigin(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="destination">Destination</Label>
+                  <Input
+                    id="destination"
+                    placeholder="e.g., Orlando, FL"
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="origin">Origin</Label>
-                <Input
-                  id="origin"
-                  placeholder="Enter starting location"
-                  value={newRoute.origin}
-                  onChange={(e) => setNewRoute({ ...newRoute, origin: e.target.value })}
-                />
+              
+              <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <Truck className="h-4 w-4 text-orange-600" />
+                  <span className="font-medium text-orange-900">Truck Route Optimization</span>
+                </div>
+                <p className="text-sm text-orange-700">
+                  Routes are optimized for commercial trucks considering weight, height, and width restrictions, 
+                  avoiding low bridges and weight-restricted roads.
+                </p>
               </div>
-              <div>
-                <Label htmlFor="destination">Destination</Label>
-                <Input
-                  id="destination"
-                  placeholder="Enter destination"
-                  value={newRoute.destination}
-                  onChange={(e) => setNewRoute({ ...newRoute, destination: e.target.value })}
-                />
-              </div>
-              <Button 
-                onClick={handleCreateRoute}
+              
+              <Button
+                onClick={calculateTruckRoute}
+                disabled={createRouteMutation.isPending}
                 className="w-full"
-                disabled={!newRoute.name || !newRoute.origin || !newRoute.destination}
               >
-                <Truck className="w-4 h-4 mr-2" />
-                Calculate Route
+                {createRouteMutation.isPending ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Calculating Truck Route...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Search className="h-4 w-4" />
+                    Calculate Truck Route
+                  </div>
+                )}
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
 
-          {/* Routes List */}
+        <TabsContent value="routes" className="space-y-4">
+          <div className="grid gap-4">
+            {!Array.isArray(routes) || routes.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-8">
+                  <Truck className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No truck routes found</h3>
+                  <p className="text-muted-foreground text-center">
+                    Create your first truck route to start planning your shipments
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              (routes as RouteType[]).map((route: RouteType) => (
+                <Card key={route.id} className="cursor-pointer hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-semibold">{route.name}</h3>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            {route.origin}
+                          </div>
+                          <span>→</span>
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            {route.destination}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm">
+                          {route.distance && (
+                            <div className="flex items-center gap-1">
+                              <Truck className="h-4 w-4" />
+                              {route.distance} km
+                            </div>
+                          )}
+                          {route.estimatedDuration && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-4 w-4" />
+                              {Math.floor(route.estimatedDuration / 60)}h {route.estimatedDuration % 60}m
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <Badge className={getStatusColor(route.status)}>
+                        {getStatusText(route.status)}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="map" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Your Routes</CardTitle>
+              <CardTitle>TomTom Truck Route Map</CardTitle>
               <CardDescription>
-                Click on a route to view it on the map
+                Visualize all truck routes on the interactive TomTom map with traffic information
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {routes.map((route) => (
-                  <div
-                    key={route.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
-                      selectedRoute?.id === route.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                    }`}
-                    onClick={() => handleRouteSelect(route)}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-semibold">{route.name}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(route.status)}`}>
-                        {route.status}
-                      </span>
-                    </div>
-                    <div className="text-sm text-gray-600 space-y-1">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        From: {route.origin}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        To: {route.destination}
-                      </div>
-                      <div className="flex gap-4 text-xs">
-                        <span>Distance: {route.distance}</span>
-                        <span>Duration: {route.duration}</span>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="lg:col-span-2">
+                  <div 
+                    ref={mapRef}
+                    className="h-96 w-full rounded-lg border"
+                    style={{ minHeight: '400px' }}
+                  />
+                  {!isTomTomLoaded && (
+                    <div className="h-96 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <Truck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">
+                          {TOMTOM_CONFIG.apiKey === "YOUR_TOMTOM_API_KEY_HERE" 
+                            ? "Please configure your TomTom API key" 
+                            : "Loading TomTom Maps..."
+                          }
+                        </p>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Map */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Route Map</CardTitle>
-              <CardDescription>
-                Interactive map showing your truck routes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div 
-                ref={mapRef}
-                className="w-full h-96 rounded-lg border border-gray-200"
-                style={{ minHeight: '400px' }}
-              >
-                {!isMapLoaded && (
-                  <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                      <p className="text-sm text-gray-600">Loading TomTom Map...</p>
+                  )}
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="font-semibold">Truck Routes</h4>
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                      {Array.isArray(routes) && routes.length > 0 ? (
+                        (routes as RouteType[]).map((route: RouteType) => (
+                          <Card 
+                            key={route.id} 
+                            className="p-3 cursor-pointer hover:bg-accent transition-colors"
+                            onClick={() => displayRouteOnMap(route)}
+                          >
+                            <div className="space-y-1">
+                              <p className="font-medium text-sm">{route.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {route.origin} → {route.destination}
+                              </p>
+                              {route.distance && (
+                                <p className="text-xs text-muted-foreground">
+                                  {route.distance} km (Truck Optimized)
+                                </p>
+                              )}
+                              <Badge size="sm" className={getStatusColor(route.status)}>
+                                {getStatusText(route.status)}
+                              </Badge>
+                            </div>
+                          </Card>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No truck routes available
+                        </p>
+                      )}
                     </div>
                   </div>
-                )}
-              </div>
-
-              {selectedRoute && (
-                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-semibold text-blue-900 mb-2">Selected Route: {selectedRoute.name}</h4>
-                  <div className="text-sm text-blue-800 space-y-1">
-                    <p>From: {selectedRoute.origin}</p>
-                    <p>To: {selectedRoute.destination}</p>
-                    <p>Distance: {selectedRoute.distance} | Duration: {selectedRoute.duration}</p>
+                  <div className="bg-muted p-3 rounded text-xs">
+                    <p className="font-medium mb-1">TomTom Truck Features:</p>
+                    <ul className="space-y-1 text-muted-foreground">
+                      <li>• Weight & height restrictions</li>
+                      <li>• Bridge clearance optimization</li>
+                      <li>• Commercial vehicle routing</li>
+                      <li>• Real-time traffic data</li>
+                      <li>• Eco-friendly route options</li>
+                    </ul>
                   </div>
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
