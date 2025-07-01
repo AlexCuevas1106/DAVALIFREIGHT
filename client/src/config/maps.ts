@@ -1,8 +1,8 @@
+
 // TomTom Maps configuration for truck routing
 export const TOMTOM_CONFIG = {
-  // Replace this with your actual TomTom API key
-  // Get your API key from: https://developer.tomtom.com/
-  apiKey: import.meta.env.VITE_TOMTOM_API_KEY || "rIKRakv4vEoPwsat6J3VQnKa4MrwmEDu",
+  // TomTom API key
+  apiKey: "rIKRakv4vEoPwsat6J3VQnKa4MrwmEDu",
 
   // Default map center (USA)
   defaultCenter: { lat: 39.8283, lng: -98.5795 },
