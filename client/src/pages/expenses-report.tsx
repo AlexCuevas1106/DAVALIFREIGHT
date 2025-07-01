@@ -292,11 +292,13 @@ export default function ExpensesReport() {
   };
 
   return (
-    <div className="p-6 space-y-6 ml-64">
-      <Header 
-        driver={driver}
-        status="on_duty"
-      />
+    <>
+      <Sidebar />
+      <div className="ml-64">
+        <Header 
+          driver={driver}
+          status="on_duty"
+        />
         
         <div className="p-6 space-y-6">
           <div className="flex items-center justify-between mb-6">
@@ -576,6 +578,7 @@ export default function ExpensesReport() {
             </div>
           </div>
         </div>
-    </div>
+      </div>
+    </>
   );
 }
