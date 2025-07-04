@@ -399,6 +399,23 @@ export default function Routes() {
     return R * c;
   };
 
+  // Helper function to convert state names to abbreviations
+  const getStateAbbreviation = (stateName: string): string | null => {
+    const stateMap: { [key: string]: string } = {
+      'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR', 'California': 'CA',
+      'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE', 'Florida': 'FL', 'Georgia': 'GA',
+      'Hawaii': 'HI', 'Idaho': 'ID', 'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA',
+      'Kansas': 'KS', 'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
+      'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS', 'Missouri': 'MO',
+      'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV', 'New Hampshire': 'NH', 'New Jersey': 'NJ',
+      'New Mexico': 'NM', 'New York': 'NY', 'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH',
+      'Oklahoma': 'OK', 'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
+      'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT', 'Vermont': 'VT',
+      'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV', 'Wisconsin': 'WI', 'Wyoming': 'WY'
+    };
+    return stateMap[stateName] || null;
+  };
+
   // Helper function to get state abbreviation from coordinates
   const getStateFromCoordinates = async (lat: number, lng: number): Promise<string> => {
     try {
@@ -507,7 +524,7 @@ export default function Routes() {
       const vehicleHeightM = Math.round(13.5 * 0.3048 * 10) / 10; // 13.5 ft to meters = 4.1 m
       const vehicleMaxSpeedKmh = Math.round(80 * 1.60934); // 80 mph to km/h = 129 km/h
 
-      const routingApiUrl = `https://api.tomtom.com/routing/1/calculateRoute/${route.originLat},${route.originLng}:${route.destinationLat},${route.destinationLng}/json?key=${apiKey}&vehicleCommercial=true&vehicleMaxSpeed=${vehicleMaxSpeedKmh}&vehicleWeight=${vehicleWeightKg}&vehicleAxleWeight=${vehicleAxleWeightKg}&vehicleLength=${vehicleLengthM}&vehicleWidth=${vehicleWidthM}&vehicleHeight=${vehicleHeightM}&travelMode=truck&unitSystem=imperial&sectionType=country&instructionsType=text`;
+      const routingApiUrl = `https://api.tomtom.com/routing/1/calculateRoute/${route.originLat},${route.originLng}:${route.destinationLat},${route.destinationLng}/json?key=${apiKey}&vehicleCommercial=true&vehicleMaxSpeed=${vehicleMaxSpeedKmh}&vehicleWeight=${vehicleWeightKg}&vehicleAxleWeight=${vehicleAxleWeightKg}&vehicleLength=${vehicleLengthM}&vehicleWidth=${vehicleWidthM}&vehicleHeight=${vehicleHeightM}&travelMode=truck&unitSystem=imperial&instructionsType=text&sectionType=travelMode&report=effectiveSettings`;
 
       console.log('Calculating truck route with exact specifications:');
       console.log(`- Weight: ${vehicleWeightKg} kg (80,000 lbs)`);
@@ -518,6 +535,14 @@ export default function Routes() {
       console.log(`- Max Speed: ${vehicleMaxSpeedKmh} km/h (80 mph)`);
 
       const routeResponse = await fetch(routingApiUrl);
+      
+      if (!routeResponse.ok) {
+        console.error('TomTom API Error:', routeResponse.status, routeResponse.statusText);
+        const errorData = await routeResponse.text();
+        console.error('Error details:', errorData);
+        throw new Error(`TomTom API error: ${routeResponse.status}`);
+      }
+
       const routeData = await routeResponse.json();
 
       console.log('Route calculation response:', routeData);
@@ -533,92 +558,140 @@ export default function Routes() {
         // Process sections to get state-by-state breakdown
         const stateBreakdown: Array<{state: string, miles: number}> = [];
 
-        // First try to get from guidance (turn-by-turn instructions)
-        if (routeInfo.guidance && routeInfo.guidance.instructions) {
-          console.log('Processing route guidance for state breakdown:', routeInfo.guidance.instructions.length, 'instructions');
+        // Always create a fallback breakdown based on coordinates first
+        console.log('Creating state breakdown based on coordinates');
+        const startState = await getStateFromCoordinates(route.originLat, route.originLng);
+        const endState = await getStateFromCoordinates(route.destinationLat, route.destinationLng);
+        
+        console.log('Start state:', startState, 'End state:', endState);
+        
+        if (startState === endState) {
+          stateBreakdown.push({
+            state: startState,
+            miles: totalDistanceMiles
+          });
+        } else {
+          // For interstate routes, distribute miles between states (rough estimate)
+          // This is a simple 60/40 split favoring the origin state for most trucking routes
+          const originStateMiles = Math.round((totalDistanceMiles * 0.6) * 10) / 10;
+          const destStateMiles = Math.round((totalDistanceMiles * 0.4) * 10) / 10;
           
+          stateBreakdown.push(
+            { state: startState, miles: originStateMiles },
+            { state: endState, miles: destStateMiles }
+          );
+        }
+
+        // Try to get more precise breakdown from guidance (turn-by-turn instructions)
+        if (routeInfo.guidance && routeInfo.guidance.instructions && routeInfo.guidance.instructions.length > 10) {
+          console.log('Processing route guidance for precise state breakdown:', routeInfo.guidance.instructions.length, 'instructions');
+          
+          const detailedBreakdown: Array<{state: string, miles: number}> = [];
           let currentState = '';
           let stateDistance = 0;
+          let lastRouteOffset = 0;
           
           routeInfo.guidance.instructions.forEach((instruction: any, index: number) => {
+            const routeOffset = instruction.routeOffsetInMeters || 0;
+            const segmentDistance = routeOffset - lastRouteOffset;
+            
+            // Try to extract state from street name or message
+            let detectedState = '';
             if (instruction.streetName && instruction.streetName.includes(',')) {
               const parts = instruction.streetName.split(',');
               const possibleState = parts[parts.length - 1].trim();
-              
               if (possibleState.length === 2 && possibleState.match(/^[A-Z]{2}$/)) {
-                if (currentState !== possibleState) {
-                  if (currentState && stateDistance > 0) {
-                    const miles = Math.round((stateDistance * 0.000621371) * 10) / 10;
-                    const existingIndex = stateBreakdown.findIndex(s => s.state === currentState);
-                    if (existingIndex >= 0) {
-                      stateBreakdown[existingIndex].miles += miles;
-                    } else {
-                      stateBreakdown.push({ state: currentState, miles });
-                    }
-                  }
-                  currentState = possibleState;
-                  stateDistance = 0;
-                }
+                detectedState = possibleState;
               }
             }
             
-            if (instruction.routeOffsetInMeters !== undefined) {
-              stateDistance = instruction.routeOffsetInMeters;
+            // If no state detected, try message field
+            if (!detectedState && instruction.message) {
+              const stateMatch = instruction.message.match(/\b([A-Z]{2})\b/);
+              if (stateMatch) {
+                detectedState = stateMatch[1];
+              }
             }
+            
+            if (detectedState && detectedState !== currentState) {
+              // Save previous state data
+              if (currentState && stateDistance > 0) {
+                const miles = Math.round((stateDistance * 0.000621371) * 10) / 10;
+                const existingIndex = detailedBreakdown.findIndex(s => s.state === currentState);
+                if (existingIndex >= 0) {
+                  detailedBreakdown[existingIndex].miles += miles;
+                } else {
+                  detailedBreakdown.push({ state: currentState, miles });
+                }
+              }
+              currentState = detectedState;
+              stateDistance = segmentDistance;
+            } else if (currentState) {
+              stateDistance += segmentDistance;
+            }
+            
+            lastRouteOffset = routeOffset;
           });
           
           // Add the last state
           if (currentState && stateDistance > 0) {
             const miles = Math.round((stateDistance * 0.000621371) * 10) / 10;
-            const existingIndex = stateBreakdown.findIndex(s => s.state === currentState);
+            const existingIndex = detailedBreakdown.findIndex(s => s.state === currentState);
             if (existingIndex >= 0) {
-              stateBreakdown[existingIndex].miles += miles;
+              detailedBreakdown[existingIndex].miles += miles;
             } else {
-              stateBreakdown.push({ state: currentState, miles });
+              detailedBreakdown.push({ state: currentState, miles });
+            }
+          }
+          
+          // If we got a detailed breakdown with reasonable data, use it
+          if (detailedBreakdown.length > 0) {
+            const totalDetailedMiles = detailedBreakdown.reduce((sum, item) => sum + item.miles, 0);
+            // Only use detailed breakdown if it's within 20% of total distance
+            if (Math.abs(totalDetailedMiles - totalDistanceMiles) / totalDistanceMiles < 0.2) {
+              console.log('Using detailed breakdown from guidance');
+              stateBreakdown.splice(0, stateBreakdown.length, ...detailedBreakdown);
             }
           }
         }
 
-        // If no state breakdown from guidance, try sections
-        if (stateBreakdown.length === 0 && routeInfo.sections && routeInfo.sections.length > 0) {
-          console.log('Processing route sections:', routeInfo.sections);
+        // Try sections as another fallback
+        if (routeInfo.sections && routeInfo.sections.length > 0) {
+          console.log('Processing route sections for additional data:', routeInfo.sections);
+          
+          const sectionBreakdown: Array<{state: string, miles: number}> = [];
           
           routeInfo.sections.forEach((section: any) => {
             const sectionMiles = Math.round((section.lengthInMeters * 0.000621371) * 10) / 10;
-            let stateName = section.countrySubdivision || section.state || 'Unknown';
+            let stateName = section.countrySubdivision || section.state;
             
-            if (sectionMiles > 0) {
-              const existingIndex = stateBreakdown.findIndex(item => item.state === stateName);
+            // Clean up state name
+            if (stateName && stateName.length > 2) {
+              // Try to convert full state name to abbreviation
+              const stateAbbr = getStateAbbreviation(stateName);
+              if (stateAbbr) {
+                stateName = stateAbbr;
+              }
+            }
+            
+            if (stateName && sectionMiles > 0.1) { // Only include meaningful distances
+              const existingIndex = sectionBreakdown.findIndex(item => item.state === stateName);
               if (existingIndex >= 0) {
-                stateBreakdown[existingIndex].miles += sectionMiles;
-                stateBreakdown[existingIndex].miles = Math.round(stateBreakdown[existingIndex].miles * 10) / 10;
+                sectionBreakdown[existingIndex].miles += sectionMiles;
+                sectionBreakdown[existingIndex].miles = Math.round(sectionBreakdown[existingIndex].miles * 10) / 10;
               } else {
-                stateBreakdown.push({ state: stateName, miles: sectionMiles });
+                sectionBreakdown.push({ state: stateName, miles: sectionMiles });
               }
             }
           });
-        }
-        
-        // If still no breakdown, create estimated breakdown based on route coordinates
-        if (stateBreakdown.length === 0) {
-          console.log('No state sections found, creating estimated breakdown based on coordinates');
           
-          // Simple estimation based on start and end states
-          const startState = await getStateFromCoordinates(route.originLat, route.originLng);
-          const endState = await getStateFromCoordinates(route.destinationLat, route.destinationLng);
-          
-          if (startState === endState) {
-            stateBreakdown.push({
-              state: startState,
-              miles: totalDistanceMiles
-            });
-          } else {
-            // Distribute miles between states (rough estimate)
-            const halfDistance = totalDistanceMiles / 2;
-            stateBreakdown.push(
-              { state: startState, miles: Math.round(halfDistance * 10) / 10 },
-              { state: endState, miles: Math.round(halfDistance * 10) / 10 }
-            );
+          // If sections provide better data, use it
+          if (sectionBreakdown.length > 0) {
+            const totalSectionMiles = sectionBreakdown.reduce((sum, item) => sum + item.miles, 0);
+            if (Math.abs(totalSectionMiles - totalDistanceMiles) / totalDistanceMiles < 0.15) {
+              console.log('Using breakdown from sections');
+              stateBreakdown.splice(0, stateBreakdown.length, ...sectionBreakdown);
+            }
           }
         }
         
