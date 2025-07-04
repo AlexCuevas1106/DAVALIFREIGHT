@@ -67,18 +67,20 @@ export default function Routes() {
   useEffect(() => {
     const initTomTomMap = async () => {
       try {
+        console.log("TomTom config check:", {
+          hasContainer: !!mapRef.current,
+          hasApiKey: !!TOMTOM_CONFIG.apiKey,
+          apiKeyPrefix: TOMTOM_CONFIG.apiKey ? TOMTOM_CONFIG.apiKey.substring(0, 8) : 'none'
+        });
+        
         if (mapRef.current && TOMTOM_CONFIG.apiKey) {
-          console.log("Initializing TomTom map with API key:", TOMTOM_CONFIG.apiKey.substring(0, 8) + "...");
+          console.log("Initializing TomTom map...");
           
           const mapInstance = tt.map({
             key: TOMTOM_CONFIG.apiKey,
             container: mapRef.current,
             center: [TOMTOM_CONFIG.defaultCenter.lng, TOMTOM_CONFIG.defaultCenter.lat],
             zoom: TOMTOM_CONFIG.defaultZoom,
-            stylesVisibility: {
-              trafficIncidents: true,
-              trafficFlow: true,
-            },
           });
 
           mapInstance.on('load', () => {
@@ -95,8 +97,8 @@ export default function Routes() {
             console.error("TomTom map error:", error);
             setIsTomTomLoaded(false);
             toast({
-              title: "Maps Error",
-              description: "Failed to load TomTom Maps. Check API key and internet connection.",
+              title: "Error de mapas",
+              description: "No se pudo cargar TomTom Maps. Verifica la clave API y la conexión a internet.",
               variant: "destructive",
             });
           });
@@ -108,8 +110,8 @@ export default function Routes() {
       } catch (error) {
         console.error("Error initializing TomTom Maps:", error);
         toast({
-          title: "Maps Error",
-          description: "Failed to initialize TomTom Maps. Please check your API key.",
+          title: "Error de mapas",
+          description: "No se pudo inicializar TomTom Maps. Por favor verifica tu clave API.",
           variant: "destructive",
         });
         setIsTomTomLoaded(false);
