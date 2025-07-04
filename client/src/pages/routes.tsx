@@ -153,38 +153,50 @@ export default function Routes() {
   }, [initializeMap, map]);
 
   const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number }> => {
-    if (!isTomTomLoaded || !TOMTOM_CONFIG.apiKey) {
-      // Fallback coordinates if TomTom fails
+    console.log(`Geocoding ${address}. API Key available: ${!!import.meta.env.VITE_TOMTOM_API_KEY}`);
+    
+    const apiKey = import.meta.env.VITE_TOMTOM_API_KEY;
+    if (!apiKey || apiKey === "YOUR_TOMTOM_API_KEY_HERE") {
+      console.warn("TomTom API key not available, using fallback coordinates");
+      toast({
+        title: "Geocoding Unavailable",
+        description: "TomTom API key not configured. Using fallback location.",
+        variant: "destructive"
+      });
       return { lat: 25.7617, lng: -80.1918 };
     }
 
     try {
-      console.log(`Geocoding address: ${address}`);
-      const response = await ttServices.services.fuzzySearch({
-        key: TOMTOM_CONFIG.apiKey,
-        query: address,
-        limit: 1,
-        countrySet: 'US'
-      });
+      console.log(`Making TomTom API call for: ${address}`);
+      
+      const apiUrl = `https://api.tomtom.com/search/2/search/${encodeURIComponent(address)}.json?key=${apiKey}&countrySet=US&limit=1`;
+      
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      
+      console.log('TomTom API response:', data);
 
-      console.log('Geocoding response:', response);
-
-      if (response.results && response.results.length > 0) {
-        const location = response.results[0].position;
+      if (data.results && data.results.length > 0) {
+        const result = data.results[0];
         const coords = {
-          lat: location.lat,
-          lng: location.lon,
+          lat: result.position.lat,
+          lng: result.position.lon,
         };
-        console.log(`Geocoded ${address} to:`, coords);
+        console.log(`Successfully geocoded ${address} to:`, coords);
         return coords;
       } else {
         console.warn(`No results found for address: ${address}`);
+        toast({
+          title: "Address Not Found",
+          description: `Could not find coordinates for: ${address}. Using fallback location.`,
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error("Geocoding error:", error);
       toast({
         title: "Geocoding Error",
-        description: `Could not find coordinates for: ${address}. Using fallback location.`,
+        description: `API error for: ${address}. Using fallback location.`,
         variant: "destructive"
       });
     }
@@ -462,9 +474,17 @@ export default function Routes() {
           }
         });
 
-        // Fit map to route bounds
+        // Fit map to route bounds with validation
         const bounds = new tt.LngLatBounds();
-        routeGeoJson.forEach((coord: [number, number]) => bounds.extend(coord));
+        routeGeoJson.forEach((coord: [number, number]) => {
+          // Check if latitude and longitude are valid numbers
+          if (typeof coord[1] === 'number' && !isNaN(coord[1]) &&
+              typeof coord[0] === 'number' && !isNaN(coord[0])) {
+            bounds.extend(coord);
+          } else {
+            console.error("Invalid coordinate found:", coord);
+          }
+        });
         map.fitBounds(bounds, { padding: 50 });
       }
     } catch (error) {

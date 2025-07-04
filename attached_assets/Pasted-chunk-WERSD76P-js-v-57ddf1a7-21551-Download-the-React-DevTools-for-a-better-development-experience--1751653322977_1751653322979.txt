@@ -1,0 +1,58 @@
+chunk-WERSD76P.js?v=57ddf1a7:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+routes.tsx:129 Map tab selected, initializing TomTom map...
+routes.tsx:81 Initializing TomTom map...
+routes.tsx:91 TomTom map loaded successfully
+routes.tsx:374 Displaying route: {id: 1, name: 'Prueba', origin: 'Los Angeles, CA', destination: 'Phoenix, AZ', originLat: 25.7617, …}
+routes.tsx:375 Coordinates: {originLng: -80.1918, originLat: 25.7617, destLng: -80.1918, destLat: 25.7617}
+routes.tsx:471 Error displaying route: Error: Invalid LngLat object: (NaN, NaN)
+    at new Oc (@tomtom-international_web-sdk-maps.js?v=57ddf1a7:10199:51)
+    at Oc.convert (@tomtom-international_web-sdk-maps.js?v=57ddf1a7:10217:87)
+    at jc.extend (@tomtom-international_web-sdk-maps.js?v=57ddf1a7:10164:161)
+    at routes.tsx:467:66
+    at Array.forEach (<anonymous>)
+    at displayRouteOnMap (routes.tsx:467:22)
+displayRouteOnMap @ routes.tsx:471
+await in displayRouteOnMap
+onClick @ routes.tsx:692
+callCallback2 @ chunk-WERSD76P.js?v=57ddf1a7:3674
+invokeGuardedCallbackDev @ chunk-WERSD76P.js?v=57ddf1a7:3699
+invokeGuardedCallback @ chunk-WERSD76P.js?v=57ddf1a7:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-WERSD76P.js?v=57ddf1a7:3736
+executeDispatch @ chunk-WERSD76P.js?v=57ddf1a7:7014
+processDispatchQueueItemsInOrder @ chunk-WERSD76P.js?v=57ddf1a7:7034
+processDispatchQueue @ chunk-WERSD76P.js?v=57ddf1a7:7043
+dispatchEventsForPlugins @ chunk-WERSD76P.js?v=57ddf1a7:7051
+(anonymous) @ chunk-WERSD76P.js?v=57ddf1a7:7174
+batchedUpdates$1 @ chunk-WERSD76P.js?v=57ddf1a7:18913
+batchedUpdates @ chunk-WERSD76P.js?v=57ddf1a7:3579
+dispatchEventForPluginEventSystem @ chunk-WERSD76P.js?v=57ddf1a7:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-WERSD76P.js?v=57ddf1a7:5478
+dispatchEvent @ chunk-WERSD76P.js?v=57ddf1a7:5472
+dispatchDiscreteEvent @ chunk-WERSD76P.js?v=57ddf1a7:5449
+routes.tsx:374 Displaying route: {id: 1, name: 'Prueba', origin: 'Los Angeles, CA', destination: 'Phoenix, AZ', originLat: 25.7617, …}
+routes.tsx:375 Coordinates: {originLng: -80.1918, originLat: 25.7617, destLng: -80.1918, destLat: 25.7617}
+routes.tsx:471 Error displaying route: Error: Invalid LngLat object: (NaN, NaN)
+    at new Oc (@tomtom-international_web-sdk-maps.js?v=57ddf1a7:10199:51)
+    at Oc.convert (@tomtom-international_web-sdk-maps.js?v=57ddf1a7:10217:87)
+    at jc.extend (@tomtom-international_web-sdk-maps.js?v=57ddf1a7:10164:161)
+    at routes.tsx:467:66
+    at Array.forEach (<anonymous>)
+    at displayRouteOnMap (routes.tsx:467:22)
+displayRouteOnMap @ routes.tsx:471
+await in displayRouteOnMap
+onClick @ routes.tsx:692
+callCallback2 @ chunk-WERSD76P.js?v=57ddf1a7:3674
+invokeGuardedCallbackDev @ chunk-WERSD76P.js?v=57ddf1a7:3699
+invokeGuardedCallback @ chunk-WERSD76P.js?v=57ddf1a7:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-WERSD76P.js?v=57ddf1a7:3736
+executeDispatch @ chunk-WERSD76P.js?v=57ddf1a7:7014
+processDispatchQueueItemsInOrder @ chunk-WERSD76P.js?v=57ddf1a7:7034
+processDispatchQueue @ chunk-WERSD76P.js?v=57ddf1a7:7043
+dispatchEventsForPlugins @ chunk-WERSD76P.js?v=57ddf1a7:7051
+(anonymous) @ chunk-WERSD76P.js?v=57ddf1a7:7174
+batchedUpdates$1 @ chunk-WERSD76P.js?v=57ddf1a7:18913
+batchedUpdates @ chunk-WERSD76P.js?v=57ddf1a7:3579
+dispatchEventForPluginEventSystem @ chunk-WERSD76P.js?v=57ddf1a7:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-WERSD76P.js?v=57ddf1a7:5478
+dispatchEvent @ chunk-WERSD76P.js?v=57ddf1a7:5472
+dispatchDiscreteEvent @ chunk-WERSD76P.js?v=57ddf1a7:5449
