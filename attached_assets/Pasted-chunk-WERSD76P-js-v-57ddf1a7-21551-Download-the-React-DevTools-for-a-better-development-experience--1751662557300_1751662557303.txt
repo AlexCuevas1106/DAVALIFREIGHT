@@ -1,0 +1,42 @@
+chunk-WERSD76P.js?v=57ddf1a7:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+routes.tsx:176 Geocoding San Diego, CA. API Key available: true
+routes.tsx:190 Making TomTom API call for: San Diego, CA
+routes.tsx:197 TomTom API response: {summary: {…}, results: Array(1)}
+routes.tsx:205 Successfully geocoded San Diego, CA to: {lat: 32.71576, lng: -117.163817}
+routes.tsx:176 Geocoding Phoenix, AZ. API Key available: true
+routes.tsx:190 Making TomTom API call for: Phoenix, AZ
+routes.tsx:197 TomTom API response: {summary: {…}, results: Array(1)}
+routes.tsx:205 Successfully geocoded Phoenix, AZ to: {lat: 33.448204, lng: -112.072585}
+routes.tsx:149 Map tab selected, initializing TomTom map...
+routes.tsx:96 Initializing TomTom map...
+routes.tsx:106 TomTom map loaded successfully
+routes.tsx:898 Displaying route on map: {id: 1, name: 'Prueba', origin: 'San Diego, CA', destination: 'Phoenix, AZ', originLat: 32.71576, …}
+routes.tsx:414 Displaying route: {id: 1, name: 'Prueba', origin: 'San Diego, CA', destination: 'Phoenix, AZ', originLat: 32.71576, …}
+routes.tsx:415 Coordinates: {originLng: -117.163817, originLat: 32.71576, destLng: -112.072585, destLat: 33.448204}
+routes.tsx:496 Calculating truck route with exact specifications:
+routes.tsx:497 - Weight: 36287 kg (80,000 lbs)
+routes.tsx:498 - Axle Weight: 9072 kg (20,000 lbs)
+routes.tsx:499 - Length: 19.8 m (65 ft)
+routes.tsx:500 - Width: 2.3 m (7.5 ft)
+routes.tsx:501 - Height: 4.1 m (13.5 ft)
+routes.tsx:502 - Max Speed: 129 km/h (80 mph)
+routes.tsx:504  GET https://api.tomtom.com/routing/1/calculateRoute/32.71576,-117.163817:33.448204,-112.072585/json?key=rIKRakv4vEoPwsat6J3VQnKa4MrwmEDu&vehicleCommercial=true&vehicleMaxSpeed=129&vehicleWeight=36287&vehicleAxleWeight=9072&vehicleLength=19.8&vehicleWidth=2.3&vehicleHeight=4.1&travelMode=truck&unitSystem=imperial&sectionType=state 400 (Bad Request)
+displayRouteOnMap @ routes.tsx:504
+onClick @ routes.tsx:899
+callCallback2 @ chunk-WERSD76P.js?v=57ddf1a7:3674
+invokeGuardedCallbackDev @ chunk-WERSD76P.js?v=57ddf1a7:3699
+invokeGuardedCallback @ chunk-WERSD76P.js?v=57ddf1a7:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-WERSD76P.js?v=57ddf1a7:3736
+executeDispatch @ chunk-WERSD76P.js?v=57ddf1a7:7014
+processDispatchQueueItemsInOrder @ chunk-WERSD76P.js?v=57ddf1a7:7034
+processDispatchQueue @ chunk-WERSD76P.js?v=57ddf1a7:7043
+dispatchEventsForPlugins @ chunk-WERSD76P.js?v=57ddf1a7:7051
+(anonymous) @ chunk-WERSD76P.js?v=57ddf1a7:7174
+batchedUpdates$1 @ chunk-WERSD76P.js?v=57ddf1a7:18913
+batchedUpdates @ chunk-WERSD76P.js?v=57ddf1a7:3579
+dispatchEventForPluginEventSystem @ chunk-WERSD76P.js?v=57ddf1a7:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-WERSD76P.js?v=57ddf1a7:5478
+dispatchEvent @ chunk-WERSD76P.js?v=57ddf1a7:5472
+dispatchDiscreteEvent @ chunk-WERSD76P.js?v=57ddf1a7:5449
+routes.tsx:507 Route calculation response: {formatVersion: '0.0.12', detailedError: {…}}
+routes.tsx:635 No route data available from TomTom API
