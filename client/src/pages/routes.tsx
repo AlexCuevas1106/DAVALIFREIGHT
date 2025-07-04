@@ -159,24 +159,38 @@ export default function Routes() {
     }
 
     try {
-      const response = await ttServices.services.geocode({
+      console.log(`Geocoding address: ${address}`);
+      const response = await ttServices.services.fuzzySearch({
         key: TOMTOM_CONFIG.apiKey,
         query: address,
         limit: 1,
+        countrySet: 'US'
       });
+
+      console.log('Geocoding response:', response);
 
       if (response.results && response.results.length > 0) {
         const location = response.results[0].position;
-        return {
+        const coords = {
           lat: location.lat,
           lng: location.lon,
         };
+        console.log(`Geocoded ${address} to:`, coords);
+        return coords;
+      } else {
+        console.warn(`No results found for address: ${address}`);
       }
     } catch (error) {
       console.error("Geocoding error:", error);
+      toast({
+        title: "Geocoding Error",
+        description: `Could not find coordinates for: ${address}. Using fallback location.`,
+        variant: "destructive"
+      });
     }
 
-    // Fallback coordinates
+    // Fallback coordinates (Miami, FL)
+    console.log(`Using fallback coordinates for: ${address}`);
     return { lat: 25.7617, lng: -80.1918 };
   };
 
@@ -357,6 +371,25 @@ export default function Routes() {
     if (!map || !isTomTomLoaded) return;
 
     try {
+      console.log('Displaying route:', route);
+      console.log('Coordinates:', {
+        originLng: route.originLng,
+        originLat: route.originLat,
+        destLng: route.destinationLng,
+        destLat: route.destinationLat
+      });
+
+      // Validate coordinates
+      if (!route.originLng || !route.originLat || !route.destinationLng || !route.destinationLat) {
+        console.error('Missing coordinates for route', route);
+        toast({
+          title: "Error",
+          description: "This route doesn't have valid coordinates. Please recreate the route.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Clear existing markers
       mapMarkers.forEach(marker => marker.remove());
       setMapMarkers([]);
@@ -369,12 +402,12 @@ export default function Routes() {
 
       // Add markers and store them
       const originMarker = new tt.Marker({ color: 'green' })
-        .setLngLat([route.originLng!, route.originLat!])
+        .setLngLat([route.originLng, route.originLat])
         .setPopup(new tt.Popup().setHTML(`<strong>Origin:</strong><br>${route.origin}`))
         .addTo(map);
 
       const destMarker = new tt.Marker({ color: 'red' })
-        .setLngLat([route.destinationLng!, route.destinationLat!])
+        .setLngLat([route.destinationLng, route.destinationLat])
         .setPopup(new tt.Popup().setHTML(`<strong>Destination:</strong><br>${route.destination}`))
         .addTo(map);
 
