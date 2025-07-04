@@ -399,6 +399,22 @@ export default function Routes() {
     return R * c;
   };
 
+  // Helper function to get state abbreviation from coordinates
+  const getStateFromCoordinates = async (lat: number, lng: number): Promise<string> => {
+    try {
+      const apiKey = import.meta.env.VITE_TOMTOM_API_KEY;
+      const response = await fetch(`https://api.tomtom.com/search/2/reverseGeocode/${lat},${lng}.json?key=${apiKey}`);
+      const data = await response.json();
+      
+      if (data.addresses && data.addresses.length > 0) {
+        return data.addresses[0].address?.countrySubdivision || 'Unknown';
+      }
+    } catch (error) {
+      console.error('Error getting state from coordinates:', error);
+    }
+    return 'Unknown';
+  };
+
   const displayRouteOnMap = async (route: RouteType) => {
     if (!map || !isTomTomLoaded) {
       console.log('Map not ready. Map:', !!map, 'TomTom loaded:', isTomTomLoaded);
@@ -491,7 +507,7 @@ export default function Routes() {
       const vehicleHeightM = Math.round(13.5 * 0.3048 * 10) / 10; // 13.5 ft to meters = 4.1 m
       const vehicleMaxSpeedKmh = Math.round(80 * 1.60934); // 80 mph to km/h = 129 km/h
 
-      const routingApiUrl = `https://api.tomtom.com/routing/1/calculateRoute/${route.originLat},${route.originLng}:${route.destinationLat},${route.destinationLng}/json?key=${apiKey}&vehicleCommercial=true&vehicleMaxSpeed=${vehicleMaxSpeedKmh}&vehicleWeight=${vehicleWeightKg}&vehicleAxleWeight=${vehicleAxleWeightKg}&vehicleLength=${vehicleLengthM}&vehicleWidth=${vehicleWidthM}&vehicleHeight=${vehicleHeightM}&travelMode=truck&unitSystem=imperial&sectionType=state`;
+      const routingApiUrl = `https://api.tomtom.com/routing/1/calculateRoute/${route.originLat},${route.originLng}:${route.destinationLat},${route.destinationLng}/json?key=${apiKey}&vehicleCommercial=true&vehicleMaxSpeed=${vehicleMaxSpeedKmh}&vehicleWeight=${vehicleWeightKg}&vehicleAxleWeight=${vehicleAxleWeightKg}&vehicleLength=${vehicleLengthM}&vehicleWidth=${vehicleWidthM}&vehicleHeight=${vehicleHeightM}&travelMode=truck&unitSystem=imperial&sectionType=country&instructionsType=text`;
 
       console.log('Calculating truck route with exact specifications:');
       console.log(`- Weight: ${vehicleWeightKg} kg (80,000 lbs)`);
@@ -517,42 +533,93 @@ export default function Routes() {
         // Process sections to get state-by-state breakdown
         const stateBreakdown: Array<{state: string, miles: number}> = [];
 
-        if (routeInfo.sections && routeInfo.sections.length > 0) {
+        // First try to get from guidance (turn-by-turn instructions)
+        if (routeInfo.guidance && routeInfo.guidance.instructions) {
+          console.log('Processing route guidance for state breakdown:', routeInfo.guidance.instructions.length, 'instructions');
+          
+          let currentState = '';
+          let stateDistance = 0;
+          
+          routeInfo.guidance.instructions.forEach((instruction: any, index: number) => {
+            if (instruction.streetName && instruction.streetName.includes(',')) {
+              const parts = instruction.streetName.split(',');
+              const possibleState = parts[parts.length - 1].trim();
+              
+              if (possibleState.length === 2 && possibleState.match(/^[A-Z]{2}$/)) {
+                if (currentState !== possibleState) {
+                  if (currentState && stateDistance > 0) {
+                    const miles = Math.round((stateDistance * 0.000621371) * 10) / 10;
+                    const existingIndex = stateBreakdown.findIndex(s => s.state === currentState);
+                    if (existingIndex >= 0) {
+                      stateBreakdown[existingIndex].miles += miles;
+                    } else {
+                      stateBreakdown.push({ state: currentState, miles });
+                    }
+                  }
+                  currentState = possibleState;
+                  stateDistance = 0;
+                }
+              }
+            }
+            
+            if (instruction.routeOffsetInMeters !== undefined) {
+              stateDistance = instruction.routeOffsetInMeters;
+            }
+          });
+          
+          // Add the last state
+          if (currentState && stateDistance > 0) {
+            const miles = Math.round((stateDistance * 0.000621371) * 10) / 10;
+            const existingIndex = stateBreakdown.findIndex(s => s.state === currentState);
+            if (existingIndex >= 0) {
+              stateBreakdown[existingIndex].miles += miles;
+            } else {
+              stateBreakdown.push({ state: currentState, miles });
+            }
+          }
+        }
+
+        // If no state breakdown from guidance, try sections
+        if (stateBreakdown.length === 0 && routeInfo.sections && routeInfo.sections.length > 0) {
           console.log('Processing route sections:', routeInfo.sections);
           
-          routeInfo.sections.forEach((section: any, index: number) => {
-            console.log(`Section ${index}:`, section);
-            
-            // TomTom sections can have different structures depending on the response
+          routeInfo.sections.forEach((section: any) => {
             const sectionMiles = Math.round((section.lengthInMeters * 0.000621371) * 10) / 10;
+            let stateName = section.countrySubdivision || section.state || 'Unknown';
             
-            // Try to get state name from different possible fields
-            let stateName = section.state || section.countrySubdivision || section.administrativeArea;
-            
-            if (stateName && sectionMiles > 0) {
-              // Check if state already exists in breakdown
-              const existingStateIndex = stateBreakdown.findIndex(item => item.state === stateName);
-              if (existingStateIndex >= 0) {
-                stateBreakdown[existingStateIndex].miles += sectionMiles;
-                stateBreakdown[existingStateIndex].miles = Math.round(stateBreakdown[existingStateIndex].miles * 10) / 10;
+            if (sectionMiles > 0) {
+              const existingIndex = stateBreakdown.findIndex(item => item.state === stateName);
+              if (existingIndex >= 0) {
+                stateBreakdown[existingIndex].miles += sectionMiles;
+                stateBreakdown[existingIndex].miles = Math.round(stateBreakdown[existingIndex].miles * 10) / 10;
               } else {
-                stateBreakdown.push({
-                  state: stateName,
-                  miles: sectionMiles
-                });
+                stateBreakdown.push({ state: stateName, miles: sectionMiles });
               }
             }
           });
         }
         
-        // If no state breakdown available, try to estimate based on coordinates
+        // If still no breakdown, create estimated breakdown based on route coordinates
         if (stateBreakdown.length === 0) {
-          console.log('No state sections found, creating estimated breakdown');
-          // For now, assign all miles to a general entry
-          stateBreakdown.push({
-            state: 'Multiple States',
-            miles: totalDistanceMiles
-          });
+          console.log('No state sections found, creating estimated breakdown based on coordinates');
+          
+          // Simple estimation based on start and end states
+          const startState = await getStateFromCoordinates(route.originLat, route.originLng);
+          const endState = await getStateFromCoordinates(route.destinationLat, route.destinationLng);
+          
+          if (startState === endState) {
+            stateBreakdown.push({
+              state: startState,
+              miles: totalDistanceMiles
+            });
+          } else {
+            // Distribute miles between states (rough estimate)
+            const halfDistance = totalDistanceMiles / 2;
+            stateBreakdown.push(
+              { state: startState, miles: Math.round(halfDistance * 10) / 10 },
+              { state: endState, miles: Math.round(halfDistance * 10) / 10 }
+            );
+          }
         }
         
         console.log('Final state breakdown:', stateBreakdown);
@@ -823,21 +890,26 @@ export default function Routes() {
                         
                         {/* Estado breakdown section */}
                         {route.stateBreakdown && (
-                          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                            <h4 className="text-sm font-medium text-gray-900 mb-2">Millas por Estado:</h4>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
+                            <h4 className="text-sm font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                              <MapPin className="h-4 w-4" />
+                              Desglose de Millas por Estado:
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                               {(() => {
                                 try {
                                   const breakdown = JSON.parse(route.stateBreakdown);
                                   return breakdown.map((stateInfo: {state: string, miles: number}, index: number) => (
-                                    <div key={index} className="flex justify-between text-sm bg-white p-2 rounded">
-                                      <span className="text-gray-600">{stateInfo.state}:</span>
-                                      <span className="font-medium text-blue-600">{stateInfo.miles} mi</span>
+                                    <div key={index} className="flex justify-between items-center text-sm bg-white p-3 rounded-md shadow-sm border border-gray-100">
+                                      <span className="text-gray-700 font-medium">{stateInfo.state}</span>
+                                      <span className="font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                        {stateInfo.miles} mi
+                                      </span>
                                     </div>
                                   ));
                                 } catch (error) {
                                   console.error('Error parsing state breakdown:', error);
-                                  return <div className="text-sm text-red-500">Error al mostrar desglose por estado</div>;
+                                  return <div className="text-sm text-red-500 p-2 bg-red-50 rounded">Error al mostrar desglose por estado</div>;
                                 }
                               })()}
                             </div>
@@ -916,21 +988,24 @@ export default function Routes() {
                                     </p>
                                   )}
                                   {route.stateBreakdown && (
-                                    <div className="mt-2">
-                                      <p className="text-xs font-medium text-muted-foreground mb-1">Millas por Estado:</p>
-                                      <div className="space-y-1">
+                                    <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                                      <p className="text-xs font-semibold text-blue-900 mb-2 flex items-center gap-1">
+                                        <MapPin className="h-3 w-3" />
+                                        Millas por Estado:
+                                      </p>
+                                      <div className="space-y-1 max-h-20 overflow-y-auto">
                                         {(() => {
                                           try {
                                             const breakdown = JSON.parse(route.stateBreakdown);
                                             return breakdown.map((stateInfo: {state: string, miles: number}, index: number) => (
-                                              <div key={index} className="flex justify-between text-xs">
-                                                <span className="text-muted-foreground">{stateInfo.state}:</span>
-                                                <span className="font-medium">{stateInfo.miles} millas</span>
+                                              <div key={index} className="flex justify-between text-xs bg-white p-1 rounded">
+                                                <span className="text-gray-600 font-medium">{stateInfo.state}:</span>
+                                                <span className="font-bold text-blue-600">{stateInfo.miles} mi</span>
                                               </div>
                                             ));
                                           } catch (error) {
                                             console.error('Error parsing state breakdown:', error);
-                                            return <div className="text-xs text-red-500">Error en desglose</div>;
+                                            return <div className="text-xs text-red-500 p-1 bg-red-100 rounded">Error en desglose</div>;
                                           }
                                         })()}
                                       </div>
