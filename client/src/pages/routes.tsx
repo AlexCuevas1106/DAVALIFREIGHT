@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -79,7 +78,7 @@ export default function Routes() {
       }
 
       console.log("Initializing TomTom map...");
-      
+
       const mapInstance = tt.map({
         key: TOMTOM_CONFIG.apiKey,
         container: mapRef.current,
@@ -91,7 +90,7 @@ export default function Routes() {
         console.log("TomTom map loaded successfully");
         setMap(mapInstance);
         setIsTomTomLoaded(true);
-        
+
         // Add navigation controls
         mapInstance.addControl(new tt.NavigationControl());
         mapInstance.addControl(new tt.FullscreenControl());
@@ -154,7 +153,7 @@ export default function Routes() {
 
   const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number }> => {
     console.log(`Geocoding ${address}. API Key available: ${!!import.meta.env.VITE_TOMTOM_API_KEY}`);
-    
+
     const apiKey = import.meta.env.VITE_TOMTOM_API_KEY;
     if (!apiKey || apiKey === "YOUR_TOMTOM_API_KEY_HERE") {
       console.warn("TomTom API key not available, using fallback coordinates");
@@ -168,12 +167,12 @@ export default function Routes() {
 
     try {
       console.log(`Making TomTom API call for: ${address}`);
-      
+
       const apiUrl = `https://api.tomtom.com/search/2/search/${encodeURIComponent(address)}.json?key=${apiKey}&countrySet=US&limit=1`;
-      
+
       const response = await fetch(apiUrl);
       const data = await response.json();
-      
+
       console.log('TomTom API response:', data);
 
       if (data.results && data.results.length > 0) {
@@ -246,8 +245,8 @@ export default function Routes() {
         if (routeResponse.routes && routeResponse.routes.length > 0) {
           const route = routeResponse.routes[0];
           const summary = route.summary;
-          
-          const distance = Math.round(summary.lengthInMeters / 1000); // Convert to km
+
+          const distance = Math.round(summary.lengthInMeters * 0.000621371); // Convert to miles
           const duration = Math.round(summary.travelTimeInSeconds / 60); // Convert to minutes
 
           // Display route on map
@@ -255,7 +254,7 @@ export default function Routes() {
             // Clear existing markers and routes
             mapMarkers.forEach((marker: any) => marker.remove());
             setMapMarkers([]);
-            
+
             // Remove existing route layers
             if (map.getSource('route')) {
               map.removeLayer('route');
@@ -278,7 +277,7 @@ export default function Routes() {
 
             // Add route line
             const routeGeoJson = route.legs[0].points.map((point: any) => [point.longitude, point.latitude]);
-            
+
             // Add the route as a source first
             map.addSource('truck-route', {
               'type': 'geojson',
@@ -334,12 +333,12 @@ export default function Routes() {
         // Fallback to basic geocoding method
         const originCoords = await geocodeAddress(origin);
         const destCoords = await geocodeAddress(destination);
-        
+
         const distance = calculateDistance(
           originCoords.lat, originCoords.lng,
           destCoords.lat, destCoords.lng
         );
-        
+
         const estimatedDuration = Math.round(distance * 1.5); // Slower for trucks
 
         const routeData: InsertRoute = {
@@ -427,7 +426,7 @@ export default function Routes() {
 
       // Calculate and display route using TomTom API directly with exact truck specifications
       const apiKey = import.meta.env.VITE_TOMTOM_API_KEY;
-      
+
       // Convert specifications to metric system for TomTom API
       const vehicleWeightKg = Math.round(80000 * 0.453592); // 80,000 lbs to kg = 36,287 kg
       const vehicleAxleWeightKg = Math.round(20000 * 0.453592); // 20,000 lbs to kg = 9,072 kg  
@@ -435,9 +434,9 @@ export default function Routes() {
       const vehicleWidthM = Math.round(7.5 * 0.3048 * 10) / 10; // 7.5 ft to meters = 2.3 m
       const vehicleHeightM = Math.round(13.5 * 0.3048 * 10) / 10; // 13.5 ft to meters = 4.1 m
       const vehicleMaxSpeedKmh = Math.round(80 * 1.60934); // 80 mph to km/h = 129 km/h
-      
+
       const routingApiUrl = `https://api.tomtom.com/routing/1/calculateRoute/${route.originLat},${route.originLng}:${route.destinationLat},${route.destinationLng}/json?key=${apiKey}&vehicleCommercial=true&vehicleMaxSpeed=${vehicleMaxSpeedKmh}&vehicleWeight=${vehicleWeightKg}&vehicleAxleWeight=${vehicleAxleWeightKg}&vehicleLength=${vehicleLengthM}&vehicleWidth=${vehicleWidthM}&vehicleHeight=${vehicleHeightM}&travelMode=truck&unitSystem=imperial&sectionType=country`;
-      
+
       console.log('Calculating truck route with exact specifications:');
       console.log(`- Weight: ${vehicleWeightKg} kg (80,000 lbs)`);
       console.log(`- Axle Weight: ${vehicleAxleWeightKg} kg (20,000 lbs)`);
@@ -445,28 +444,28 @@ export default function Routes() {
       console.log(`- Width: ${vehicleWidthM} m (7.5 ft)`);
       console.log(`- Height: ${vehicleHeightM} m (13.5 ft)`);
       console.log(`- Max Speed: ${vehicleMaxSpeedKmh} km/h (80 mph)`);
-      
+
       const routeResponse = await fetch(routingApiUrl);
       const routeData = await routeResponse.json();
-      
+
       console.log('Route calculation response:', routeData);
 
       if (routeData.routes && routeData.routes.length > 0) {
         const routeInfo = routeData.routes[0];
         const routeGeoJson = routeInfo.legs[0].points.map((point: any) => [point.longitude, point.latitude]);
-        
+
         // Extract route summary information in miles
         const totalDistanceMiles = Math.round((routeInfo.summary.lengthInMeters * 0.000621371) * 10) / 10; // Convert meters to miles
         const totalTimeDuration = Math.round(routeInfo.summary.travelTimeInSeconds / 60); // Convert to minutes
-        
+
         // Process sections to get state-by-state breakdown
         const stateBreakdown: Array<{state: string, miles: number}> = [];
-        
+
         if (routeInfo.sections) {
           routeInfo.sections.forEach((section: any) => {
             if (section.country === 'United States' && section.state) {
               const sectionMiles = Math.round((section.lengthInMeters * 0.000621371) * 10) / 10;
-              
+
               // Check if state already exists in breakdown
               const existingStateIndex = stateBreakdown.findIndex(item => item.state === section.state);
               if (existingStateIndex >= 0) {
@@ -481,7 +480,7 @@ export default function Routes() {
             }
           });
         }
-        
+
         // Update route in storage with calculated information
         try {
           await apiRequest(`/api/routes/${route.id}`, {
@@ -492,17 +491,17 @@ export default function Routes() {
               stateBreakdown: JSON.stringify(stateBreakdown)
             }),
           });
-          
+
           // Refetch routes to update the UI
           queryClient.invalidateQueries({ queryKey: ['/api/routes'] });
-          
+
           console.log(`Route updated: ${totalDistanceMiles} miles, ${totalTimeDuration} minutes`);
           console.log('State breakdown:', stateBreakdown);
-          
+
         } catch (error) {
           console.error('Failed to update route with calculated data:', error);
         }
-        
+
         // Add the route as a source and layer
         map.addSource('route', {
           'type': 'geojson',
@@ -638,7 +637,7 @@ export default function Routes() {
                   />
                 </div>
               </div>
-              
+
               <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
                 <div className="flex items-center gap-2 mb-2">
                   <Truck className="h-4 w-4 text-orange-600" />
@@ -649,7 +648,7 @@ export default function Routes() {
                   avoiding low bridges and weight-restricted roads.
                 </p>
               </div>
-              
+
               <Button
                 onClick={calculateTruckRoute}
                 disabled={createRouteMutation.isPending}
@@ -817,22 +816,22 @@ export default function Routes() {
                     </div>
                   </div>
                   <div className="bg-muted p-3 rounded text-xs">
-                    <p className="font-medium mb-2">Truck Specifications:</p>
-                    <div className="grid grid-cols-2 gap-2 text-muted-foreground mb-3">
-                      <div>Length: 65 ft</div>
-                      <div>Height: 13'6"</div>
-                      <div>Width: 7'6"</div>
-                      <div>Weight: 80,000 lbs</div>
+                      <p className="font-medium mb-2">Especificaciones del Camión:</p>
+                      <div className="grid grid-cols-2 gap-2 text-muted-foreground mb-3">
+                        <div>Largo: 65 pies</div>
+                        <div>Alto: 13'6"</div>
+                        <div>Ancho: 7'6"</div>
+                        <div>Peso: 80,000 lbs</div>
+                      </div>
+                      <p className="font-medium mb-1">Características TomTom:</p>
+                      <ul className="space-y-1 text-muted-foreground">
+                        <li>• Restricciones de peso y altura</li>
+                        <li>• Optimización de puentes</li>
+                        <li>• Rutas para vehículos comerciales</li>
+                        <li>• Seguimiento de millas por estado</li>
+                        <li>• Opciones de rutas ecológicas</li>
+                      </ul>
                     </div>
-                    <p className="font-medium mb-1">TomTom Features:</p>
-                    <ul className="space-y-1 text-muted-foreground">
-                      <li>• Weight & height restrictions</li>
-                      <li>• Bridge clearance optimization</li>
-                      <li>• Commercial vehicle routing</li>
-                      <li>• State-by-state mileage tracking</li>
-                      <li>• Eco-friendly route options</li>
-                    </ul>
-                  </div>
                 </div>
               </div>
             </CardContent>
