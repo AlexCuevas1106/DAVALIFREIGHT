@@ -67,46 +67,46 @@ export default function Routes() {
   useEffect(() => {
     const initTomTomMap = async () => {
       try {
-        console.log("TomTom config check:", {
-          hasContainer: !!mapRef.current,
-          hasApiKey: !!TOMTOM_CONFIG.apiKey,
-          apiKeyPrefix: TOMTOM_CONFIG.apiKey ? TOMTOM_CONFIG.apiKey.substring(0, 8) : 'none'
-        });
-        
-        if (mapRef.current && TOMTOM_CONFIG.apiKey) {
-          console.log("Initializing TomTom map...");
-          
-          const mapInstance = tt.map({
-            key: TOMTOM_CONFIG.apiKey,
-            container: mapRef.current,
-            center: [TOMTOM_CONFIG.defaultCenter.lng, TOMTOM_CONFIG.defaultCenter.lat],
-            zoom: TOMTOM_CONFIG.defaultZoom,
-          });
-
-          mapInstance.on('load', () => {
-            console.log("TomTom map loaded successfully");
-            setMap(mapInstance);
-            setIsTomTomLoaded(true);
-            
-            // Add navigation controls
-            mapInstance.addControl(new tt.NavigationControl());
-            mapInstance.addControl(new tt.FullscreenControl());
-          });
-
-          mapInstance.on('error', (error) => {
-            console.error("TomTom map error:", error);
-            setIsTomTomLoaded(false);
-            toast({
-              title: "Error de mapas",
-              description: "No se pudo cargar TomTom Maps. Verifica la clave API y la conexión a internet.",
-              variant: "destructive",
-            });
-          });
-
-        } else {
+        if (!TOMTOM_CONFIG.apiKey) {
           console.log("TomTom API key not configured");
           setIsTomTomLoaded(false);
+          return;
         }
+
+        if (!mapRef.current) {
+          console.log("Map container not ready, retrying...");
+          return;
+        }
+
+        console.log("Initializing TomTom map...");
+        
+        const mapInstance = tt.map({
+          key: TOMTOM_CONFIG.apiKey,
+          container: mapRef.current,
+          center: [TOMTOM_CONFIG.defaultCenter.lng, TOMTOM_CONFIG.defaultCenter.lat],
+          zoom: TOMTOM_CONFIG.defaultZoom,
+        });
+
+        mapInstance.on('load', () => {
+          console.log("TomTom map loaded successfully");
+          setMap(mapInstance);
+          setIsTomTomLoaded(true);
+          
+          // Add navigation controls
+          mapInstance.addControl(new tt.NavigationControl());
+          mapInstance.addControl(new tt.FullscreenControl());
+        });
+
+        mapInstance.on('error', (error) => {
+          console.error("TomTom map error:", error);
+          setIsTomTomLoaded(false);
+          toast({
+            title: "Error de mapas",
+            description: "No se pudo cargar TomTom Maps. Verifica la clave API y la conexión a internet.",
+            variant: "destructive",
+          });
+        });
+
       } catch (error) {
         console.error("Error initializing TomTom Maps:", error);
         toast({
@@ -118,8 +118,15 @@ export default function Routes() {
       }
     };
 
-    // Add a small delay to ensure the DOM is ready
-    const timeoutId = setTimeout(initTomTomMap, 100);
+    // Use a more robust approach to detect when container is ready
+    const timeoutId = setTimeout(() => {
+      if (mapRef.current) {
+        initTomTomMap();
+      } else {
+        // Container still not ready, try again in 1 second
+        setTimeout(initTomTomMap, 1000);
+      }
+    }, 100);
 
     return () => {
       clearTimeout(timeoutId);

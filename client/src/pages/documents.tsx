@@ -128,9 +128,13 @@ export default function Documents() {
     }
   };
 
-  const handleDelete = async (documentId: string) => {
+  const handleDelete = async (documentId: number) => {
     if (confirm('Are you sure you want to delete this document?')) {
-      await deleteMutation.mutateAsync(documentId);
+      try {
+        await deleteMutation.mutateAsync(documentId.toString());
+      } catch (error) {
+        console.error('Error deleting document:', error);
+      }
     }
   };
 
