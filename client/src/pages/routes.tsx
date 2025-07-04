@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { MapPin, Route, Clock, Truck, Plus, Search } from "lucide-react";
 import * as tt from '@tomtom-international/web-sdk-maps';
 import * as ttServices from '@tomtom-international/web-sdk-services';
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { TOMTOM_CONFIG } from "@/config/maps";
 import type { Route as RouteType, InsertRoute } from "@shared/schema";
@@ -425,11 +425,27 @@ export default function Routes() {
 
       setMapMarkers([originMarker, destMarker]);
 
-      // Calculate and display route using TomTom API directly
+      // Calculate and display route using TomTom API directly with exact truck specifications
       const apiKey = import.meta.env.VITE_TOMTOM_API_KEY;
-      const routingApiUrl = `https://api.tomtom.com/routing/1/calculateRoute/${route.originLat},${route.originLng}:${route.destinationLat},${route.destinationLng}/json?key=${apiKey}&vehicleCommercial=true&vehicleMaxSpeed=130&vehicleWeight=40000&vehicleAxleWeight=9000&vehicleLength=18&vehicleWidth=2.6&vehicleHeight=4&travelMode=truck`;
       
-      console.log('Calculating truck route with TomTom API...');
+      // Convert specifications to metric system for TomTom API
+      const vehicleWeightKg = Math.round(80000 * 0.453592); // 80,000 lbs to kg = 36,287 kg
+      const vehicleAxleWeightKg = Math.round(20000 * 0.453592); // 20,000 lbs to kg = 9,072 kg  
+      const vehicleLengthM = Math.round(65 * 0.3048 * 10) / 10; // 65 ft to meters = 19.8 m
+      const vehicleWidthM = Math.round(7.5 * 0.3048 * 10) / 10; // 7.5 ft to meters = 2.3 m
+      const vehicleHeightM = Math.round(13.5 * 0.3048 * 10) / 10; // 13.5 ft to meters = 4.1 m
+      const vehicleMaxSpeedKmh = Math.round(80 * 1.60934); // 80 mph to km/h = 129 km/h
+      
+      const routingApiUrl = `https://api.tomtom.com/routing/1/calculateRoute/${route.originLat},${route.originLng}:${route.destinationLat},${route.destinationLng}/json?key=${apiKey}&vehicleCommercial=true&vehicleMaxSpeed=${vehicleMaxSpeedKmh}&vehicleWeight=${vehicleWeightKg}&vehicleAxleWeight=${vehicleAxleWeightKg}&vehicleLength=${vehicleLengthM}&vehicleWidth=${vehicleWidthM}&vehicleHeight=${vehicleHeightM}&travelMode=truck&unitSystem=imperial&sectionType=country`;
+      
+      console.log('Calculating truck route with exact specifications:');
+      console.log(`- Weight: ${vehicleWeightKg} kg (80,000 lbs)`);
+      console.log(`- Axle Weight: ${vehicleAxleWeightKg} kg (20,000 lbs)`);
+      console.log(`- Length: ${vehicleLengthM} m (65 ft)`);
+      console.log(`- Width: ${vehicleWidthM} m (7.5 ft)`);
+      console.log(`- Height: ${vehicleHeightM} m (13.5 ft)`);
+      console.log(`- Max Speed: ${vehicleMaxSpeedKmh} km/h (80 mph)`);
+      
       const routeResponse = await fetch(routingApiUrl);
       const routeData = await routeResponse.json();
       
@@ -438,6 +454,54 @@ export default function Routes() {
       if (routeData.routes && routeData.routes.length > 0) {
         const routeInfo = routeData.routes[0];
         const routeGeoJson = routeInfo.legs[0].points.map((point: any) => [point.longitude, point.latitude]);
+        
+        // Extract route summary information in miles
+        const totalDistanceMiles = Math.round((routeInfo.summary.lengthInMeters * 0.000621371) * 10) / 10; // Convert meters to miles
+        const totalTimeDuration = Math.round(routeInfo.summary.travelTimeInSeconds / 60); // Convert to minutes
+        
+        // Process sections to get state-by-state breakdown
+        const stateBreakdown: Array<{state: string, miles: number}> = [];
+        
+        if (routeInfo.sections) {
+          routeInfo.sections.forEach((section: any) => {
+            if (section.country === 'United States' && section.state) {
+              const sectionMiles = Math.round((section.lengthInMeters * 0.000621371) * 10) / 10;
+              
+              // Check if state already exists in breakdown
+              const existingStateIndex = stateBreakdown.findIndex(item => item.state === section.state);
+              if (existingStateIndex >= 0) {
+                stateBreakdown[existingStateIndex].miles += sectionMiles;
+                stateBreakdown[existingStateIndex].miles = Math.round(stateBreakdown[existingStateIndex].miles * 10) / 10;
+              } else {
+                stateBreakdown.push({
+                  state: section.state,
+                  miles: sectionMiles
+                });
+              }
+            }
+          });
+        }
+        
+        // Update route in storage with calculated information
+        try {
+          await apiRequest(`/api/routes/${route.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              totalMiles: totalDistanceMiles,
+              estimatedDuration: totalTimeDuration,
+              stateBreakdown: JSON.stringify(stateBreakdown)
+            }),
+          });
+          
+          // Refetch routes to update the UI
+          queryClient.invalidateQueries({ queryKey: ['/api/routes'] });
+          
+          console.log(`Route updated: ${totalDistanceMiles} miles, ${totalTimeDuration} minutes`);
+          console.log('State breakdown:', stateBreakdown);
+          
+        } catch (error) {
+          console.error('Failed to update route with calculated data:', error);
+        }
         
         // Add the route as a source and layer
         map.addSource('route', {
@@ -709,9 +773,34 @@ export default function Routes() {
                               <p className="text-xs text-muted-foreground">
                                 {route.origin} → {route.destination}
                               </p>
-                              {route.distance && (
+                              {route.totalMiles && (
+                                <div className="space-y-1">
+                                  <p className="text-xs text-muted-foreground">
+                                    <strong>{route.totalMiles} miles</strong> (Truck Optimized)
+                                  </p>
+                                  {route.estimatedDuration && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Estimated: {Math.floor(route.estimatedDuration / 60)}h {route.estimatedDuration % 60}m
+                                    </p>
+                                  )}
+                                  {route.stateBreakdown && (
+                                    <div className="mt-2">
+                                      <p className="text-xs font-medium text-muted-foreground mb-1">Miles by State:</p>
+                                      <div className="space-y-1">
+                                        {JSON.parse(route.stateBreakdown).map((stateInfo: {state: string, miles: number}, index: number) => (
+                                          <div key={index} className="flex justify-between text-xs">
+                                            <span className="text-muted-foreground">{stateInfo.state}:</span>
+                                            <span className="font-medium">{stateInfo.miles} mi</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              {!route.totalMiles && route.distance && (
                                 <p className="text-xs text-muted-foreground">
-                                  {route.distance} km (Truck Optimized)
+                                  {route.distance} km (Legacy data)
                                 </p>
                               )}
                               <Badge size="sm" className={getStatusColor(route.status)}>
@@ -728,12 +817,19 @@ export default function Routes() {
                     </div>
                   </div>
                   <div className="bg-muted p-3 rounded text-xs">
-                    <p className="font-medium mb-1">TomTom Truck Features:</p>
+                    <p className="font-medium mb-2">Truck Specifications:</p>
+                    <div className="grid grid-cols-2 gap-2 text-muted-foreground mb-3">
+                      <div>Length: 65 ft</div>
+                      <div>Height: 13'6"</div>
+                      <div>Width: 7'6"</div>
+                      <div>Weight: 80,000 lbs</div>
+                    </div>
+                    <p className="font-medium mb-1">TomTom Features:</p>
                     <ul className="space-y-1 text-muted-foreground">
                       <li>• Weight & height restrictions</li>
                       <li>• Bridge clearance optimization</li>
                       <li>• Commercial vehicle routing</li>
-                      <li>• Real-time traffic data</li>
+                      <li>• State-by-state mileage tracking</li>
                       <li>• Eco-friendly route options</li>
                     </ul>
                   </div>

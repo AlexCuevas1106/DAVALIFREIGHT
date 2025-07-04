@@ -13,14 +13,14 @@ export const TOMTOM_CONFIG = {
   // TomTom Map style
   mapStyle: "main",
 
-  // Truck routing parameters
+  // Truck routing parameters - exact specifications
   truckOptions: {
-    vehicleMaxSpeed: 90, // km/h
-    vehicleWeight: 40000, // kg (typical truck weight)
-    vehicleAxleWeight: 10000, // kg
-    vehicleLength: 16.5, // meters
-    vehicleWidth: 2.55, // meters
-    vehicleHeight: 4.0, // meters
+    vehicleMaxSpeed: 80, // mph (converted to km/h in API calls)
+    vehicleWeight: 80000, // lbs (converted to kg in API calls: 36287 kg)
+    vehicleAxleWeight: 20000, // lbs per axle (converted to kg: 9072 kg)
+    vehicleLength: 65, // feet (converted to meters: 19.8 m)
+    vehicleWidth: 7.5, // feet (converted to meters: 2.3 m) 
+    vehicleHeight: 13.5, // feet (converted to meters: 4.1 m)
     vehicleCommercial: true,
     vehicleLoadType: "USHazmatClass2,USHazmatClass8,USHazmatClass9",
   },

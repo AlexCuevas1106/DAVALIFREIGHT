@@ -126,8 +126,10 @@ export const routes = pgTable("routes", {
   originLng: real("origin_lng").notNull(),
   destinationLat: real("destination_lat").notNull(),
   destinationLng: real("destination_lng").notNull(),
-  distance: real("distance"), // en kilómetros
+  distance: real("distance"), // en kilómetros (legacy field)
+  totalMiles: real("total_miles"), // Total distance in miles
   estimatedDuration: integer("estimated_duration"), // en minutos
+  stateBreakdown: text("state_breakdown"), // JSON string with state-by-state miles
   driverId: integer("driver_id").references(() => drivers.id),
   shipmentId: integer("shipment_id").references(() => shipments.id),
   status: text("status").notNull().default("planned"), // 'planned', 'active', 'completed'

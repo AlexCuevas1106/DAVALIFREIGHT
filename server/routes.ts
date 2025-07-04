@@ -469,6 +469,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/routes/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      const route = await storage.updateRoute(id, updates);
+      if (!route) {
+        return res.status(404).json({ error: "Route not found" });
+      }
+      res.json(route);
+    } catch (error) {
+      console.error("Error updating route:", error);
+      res.status(500).json({ error: "Failed to update route" });
+    }
+  });
+
   app.delete("/api/routes/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
