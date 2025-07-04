@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,78 +63,93 @@ export default function Routes() {
     },
   });
 
-  // Initialize TomTom Map
-  useEffect(() => {
-    const initTomTomMap = async () => {
-      try {
-        if (!TOMTOM_CONFIG.apiKey) {
-          console.log("TomTom API key not configured");
-          setIsTomTomLoaded(false);
-          return;
-        }
+  // Initialize TomTom Map with proper container detection
+  const initializeMap = useCallback(async () => {
+    try {
+      if (!TOMTOM_CONFIG.apiKey) {
+        console.log("TomTom API key not configured");
+        setIsTomTomLoaded(false);
+        return;
+      }
 
-        if (!mapRef.current) {
-          console.log("Map container not ready, retrying...");
-          return;
-        }
+      if (!mapRef.current) {
+        console.log("Map container not ready");
+        return false;
+      }
 
-        console.log("Initializing TomTom map...");
+      console.log("Initializing TomTom map...");
+      
+      const mapInstance = tt.map({
+        key: TOMTOM_CONFIG.apiKey,
+        container: mapRef.current,
+        center: [TOMTOM_CONFIG.defaultCenter.lng, TOMTOM_CONFIG.defaultCenter.lat],
+        zoom: TOMTOM_CONFIG.defaultZoom,
+      });
+
+      mapInstance.on('load', () => {
+        console.log("TomTom map loaded successfully");
+        setMap(mapInstance);
+        setIsTomTomLoaded(true);
         
-        const mapInstance = tt.map({
-          key: TOMTOM_CONFIG.apiKey,
-          container: mapRef.current,
-          center: [TOMTOM_CONFIG.defaultCenter.lng, TOMTOM_CONFIG.defaultCenter.lat],
-          zoom: TOMTOM_CONFIG.defaultZoom,
-        });
+        // Add navigation controls
+        mapInstance.addControl(new tt.NavigationControl());
+        mapInstance.addControl(new tt.FullscreenControl());
+      });
 
-        mapInstance.on('load', () => {
-          console.log("TomTom map loaded successfully");
-          setMap(mapInstance);
-          setIsTomTomLoaded(true);
-          
-          // Add navigation controls
-          mapInstance.addControl(new tt.NavigationControl());
-          mapInstance.addControl(new tt.FullscreenControl());
-        });
-
-        mapInstance.on('error', (error) => {
-          console.error("TomTom map error:", error);
-          setIsTomTomLoaded(false);
-          toast({
-            title: "Error de mapas",
-            description: "No se pudo cargar TomTom Maps. Verifica la clave API y la conexión a internet.",
-            variant: "destructive",
-          });
-        });
-
-      } catch (error) {
-        console.error("Error initializing TomTom Maps:", error);
+      mapInstance.on('error', (error) => {
+        console.error("TomTom map error:", error);
+        setIsTomTomLoaded(false);
         toast({
           title: "Error de mapas",
-          description: "No se pudo inicializar TomTom Maps. Por favor verifica tu clave API.",
+          description: "No se pudo cargar TomTom Maps. Verifica la clave API y la conexión a internet.",
           variant: "destructive",
         });
-        setIsTomTomLoaded(false);
-      }
-    };
+      });
 
-    // Use a more robust approach to detect when container is ready
-    const timeoutId = setTimeout(() => {
-      if (mapRef.current) {
-        initTomTomMap();
-      } else {
-        // Container still not ready, try again in 1 second
-        setTimeout(initTomTomMap, 1000);
-      }
-    }, 100);
+      return true;
+    } catch (error) {
+      console.error("Error initializing TomTom Maps:", error);
+      toast({
+        title: "Error de mapas",
+        description: "No se pudo inicializar TomTom Maps. Por favor verifica tu clave API.",
+        variant: "destructive",
+      });
+      setIsTomTomLoaded(false);
+      return false;
+    }
+  }, [toast]);
+
+  // Initialize map when the map tab is selected
+  const handleTabChange = useCallback((value: string) => {
+    if (value === 'map' && !map && !isTomTomLoaded) {
+      // Small delay to ensure the tab content is rendered
+      setTimeout(() => {
+        if (mapRef.current) {
+          console.log("Map tab selected, initializing TomTom map...");
+          initializeMap();
+        }
+      }, 100);
+    }
+  }, [map, isTomTomLoaded, initializeMap]);
+
+  // Effect to initialize map when component mounts on map tab
+  useEffect(() => {
+    // Only initialize if we're on the map tab from the start
+    if (window.location.hash === '#map' || window.location.pathname.includes('map')) {
+      setTimeout(() => {
+        if (mapRef.current && !map) {
+          console.log("Component mounted on map tab, initializing...");
+          initializeMap();
+        }
+      }, 500);
+    }
 
     return () => {
-      clearTimeout(timeoutId);
       if (map) {
         map.remove();
       }
     };
-  }, [toast]);
+  }, [initializeMap, map]);
 
   const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number }> => {
     if (!isTomTomLoaded || !TOMTOM_CONFIG.apiKey) {
@@ -447,7 +462,7 @@ export default function Routes() {
         </Button>
       </div>
 
-      <Tabs defaultValue="create" className="space-y-4">
+      <Tabs defaultValue="create" className="space-y-4" onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="create">Create Truck Route</TabsTrigger>
           <TabsTrigger value="routes">Existing Routes</TabsTrigger>
@@ -594,14 +609,14 @@ export default function Routes() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 relative">
                   <div 
                     ref={mapRef}
                     className="h-96 w-full rounded-lg border"
                     style={{ minHeight: '400px' }}
                   />
                   {!isTomTomLoaded && (
-                    <div className="h-96 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <div className="absolute inset-0 bg-gray-100 rounded-lg flex items-center justify-center">
                       <div className="text-center">
                         <Truck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                         <p className="text-muted-foreground">
