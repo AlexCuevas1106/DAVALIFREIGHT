@@ -425,26 +425,19 @@ export default function Routes() {
 
       setMapMarkers([originMarker, destMarker]);
 
-      // Calculate and display route
-      const routeResponse = await ttServices.services.calculateRoute({
-        key: TOMTOM_CONFIG.apiKey,
-        locations: [
-          [route.originLng!, route.originLat!],
-          [route.destinationLng!, route.destinationLat!]
-        ],
-        travelMode: 'truck',
-        vehicleMaxSpeed: TOMTOM_CONFIG.truckOptions.vehicleMaxSpeed,
-        vehicleWeight: TOMTOM_CONFIG.truckOptions.vehicleWeight,
-        vehicleAxleWeight: TOMTOM_CONFIG.truckOptions.vehicleAxleWeight,
-        vehicleLength: TOMTOM_CONFIG.truckOptions.vehicleLength,
-        vehicleWidth: TOMTOM_CONFIG.truckOptions.vehicleWidth,
-        vehicleHeight: TOMTOM_CONFIG.truckOptions.vehicleHeight,
-        vehicleCommercial: TOMTOM_CONFIG.truckOptions.vehicleCommercial,
-      });
+      // Calculate and display route using TomTom API directly
+      const apiKey = import.meta.env.VITE_TOMTOM_API_KEY;
+      const routingApiUrl = `https://api.tomtom.com/routing/1/calculateRoute/${route.originLat},${route.originLng}:${route.destinationLat},${route.destinationLng}/json?key=${apiKey}&vehicleCommercial=true&vehicleMaxSpeed=130&vehicleWeight=40000&vehicleAxleWeight=9000&vehicleLength=18&vehicleWidth=2.6&vehicleHeight=4&travelMode=truck`;
+      
+      console.log('Calculating truck route with TomTom API...');
+      const routeResponse = await fetch(routingApiUrl);
+      const routeData = await routeResponse.json();
+      
+      console.log('Route calculation response:', routeData);
 
-      if (routeResponse.routes && routeResponse.routes.length > 0) {
-        const routeData = routeResponse.routes[0];
-        const routeGeoJson = routeData.legs[0].points.map((point: any) => [point.longitude, point.latitude]);
+      if (routeData.routes && routeData.routes.length > 0) {
+        const routeInfo = routeData.routes[0];
+        const routeGeoJson = routeInfo.legs[0].points.map((point: any) => [point.longitude, point.latitude]);
         
         // Add the route as a source and layer
         map.addSource('route', {
