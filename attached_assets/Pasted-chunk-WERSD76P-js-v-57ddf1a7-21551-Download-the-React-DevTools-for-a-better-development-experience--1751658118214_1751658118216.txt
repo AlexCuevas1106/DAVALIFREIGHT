@@ -1,0 +1,72 @@
+chunk-WERSD76P.js?v=57ddf1a7:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+routes.tsx:176 Geocoding San Diego, CA. API Key available: true
+routes.tsx:190 Making TomTom API call for: San Diego, CA
+routes.tsx:197 TomTom API response: Object
+routes.tsx:205 Successfully geocoded San Diego, CA to: Object
+routes.tsx:176 Geocoding Phoenix, AZ. API Key available: true
+routes.tsx:190 Making TomTom API call for: Phoenix, AZ
+routes.tsx:197 TomTom API response: Object
+routes.tsx:205 Successfully geocoded Phoenix, AZ to: Object
+routes.tsx:176 Geocoding Los Angeles, CA. API Key available: true
+routes.tsx:190 Making TomTom API call for: Los Angeles, CA
+routes.tsx:197 TomTom API response: Object
+routes.tsx:205 Successfully geocoded Los Angeles, CA to: Object
+routes.tsx:176 Geocoding Miami, FL. API Key available: true
+routes.tsx:190 Making TomTom API call for: Miami, FL
+routes.tsx:197 TomTom API response: Object
+routes.tsx:205 Successfully geocoded Miami, FL to: Object
+routes.tsx:149 Map tab selected, initializing TomTom map...
+routes.tsx:96 Initializing TomTom map...
+routes.tsx:106 TomTom map loaded successfully
+routes.tsx:863 Displaying route on map: Object
+routes.tsx:414 Displaying route: Object
+routes.tsx:415 Coordinates: Object
+routes.tsx:496 Calculating truck route with exact specifications:
+routes.tsx:497 - Weight: 36287 kg (80,000 lbs)
+routes.tsx:498 - Axle Weight: 9072 kg (20,000 lbs)
+routes.tsx:499 - Length: 19.8 m (65 ft)
+routes.tsx:500 - Width: 2.3 m (7.5 ft)
+routes.tsx:501 - Height: 4.1 m (13.5 ft)
+routes.tsx:502 - Max Speed: 129 km/h (80 mph)
+api.tomtom.com/routing/1/calculateRoute/34.052238,-118.243344:25.775084,-80.194702/json?key=rIKRakv4vEoPwsat6J3VQnKa4MrwmEDu&vehicleCommercial=true&vehicleMaxSpeed=129&vehicleWeight=36287&vehicleAxleWeight=9072&vehicleLength=19.8&vehicleWidth=2.3&vehicleHeight=4.1&travelMode=truck&unitSystem=imperial&sectionType=country:1  Failed to load resource: the server responded with a status of 400 ()
+routes.tsx:507 Route calculation response: Object
+routes.tsx:608 No route data available from TomTom API
+routes.tsx:863 Displaying route on map: Object
+routes.tsx:414 Displaying route: Object
+routes.tsx:415 Coordinates: Object
+routes.tsx:496 Calculating truck route with exact specifications:
+routes.tsx:497 - Weight: 36287 kg (80,000 lbs)
+routes.tsx:498 - Axle Weight: 9072 kg (20,000 lbs)
+routes.tsx:499 - Length: 19.8 m (65 ft)
+routes.tsx:500 - Width: 2.3 m (7.5 ft)
+routes.tsx:501 - Height: 4.1 m (13.5 ft)
+routes.tsx:502 - Max Speed: 129 km/h (80 mph)
+api.tomtom.com/routing/1/calculateRoute/34.052238,-118.243344:25.775084,-80.194702/json?key=rIKRakv4vEoPwsat6J3VQnKa4MrwmEDu&vehicleCommercial=true&vehicleMaxSpeed=129&vehicleWeight=36287&vehicleAxleWeight=9072&vehicleLength=19.8&vehicleWidth=2.3&vehicleHeight=4.1&travelMode=truck&unitSystem=imperial&sectionType=country:1  Failed to load resource: the server responded with a status of 400 ()
+routes.tsx:507 Route calculation response: Object
+routes.tsx:608 No route data available from TomTom API
+routes.tsx:863 Displaying route on map: Object
+routes.tsx:414 Displaying route: Object
+routes.tsx:415 Coordinates: Object
+routes.tsx:496 Calculating truck route with exact specifications:
+routes.tsx:497 - Weight: 36287 kg (80,000 lbs)
+routes.tsx:498 - Axle Weight: 9072 kg (20,000 lbs)
+routes.tsx:499 - Length: 19.8 m (65 ft)
+routes.tsx:500 - Width: 2.3 m (7.5 ft)
+routes.tsx:501 - Height: 4.1 m (13.5 ft)
+routes.tsx:502 - Max Speed: 129 km/h (80 mph)
+api.tomtom.com/routing/1/calculateRoute/32.71576,-117.163817:33.448204,-112.072585/json?key=rIKRakv4vEoPwsat6J3VQnKa4MrwmEDu&vehicleCommercial=true&vehicleMaxSpeed=129&vehicleWeight=36287&vehicleAxleWeight=9072&vehicleLength=19.8&vehicleWidth=2.3&vehicleHeight=4.1&travelMode=truck&unitSystem=imperial&sectionType=country:1  Failed to load resource: the server responded with a status of 400 ()
+routes.tsx:507 Route calculation response: Object
+routes.tsx:608 No route data available from TomTom API
+routes.tsx:863 Displaying route on map: Object
+routes.tsx:414 Displaying route: Object
+routes.tsx:415 Coordinates: Object
+routes.tsx:496 Calculating truck route with exact specifications:
+routes.tsx:497 - Weight: 36287 kg (80,000 lbs)
+routes.tsx:498 - Axle Weight: 9072 kg (20,000 lbs)
+routes.tsx:499 - Length: 19.8 m (65 ft)
+routes.tsx:500 - Width: 2.3 m (7.5 ft)
+routes.tsx:501 - Height: 4.1 m (13.5 ft)
+routes.tsx:502 - Max Speed: 129 km/h (80 mph)
+api.tomtom.com/routing/1/calculateRoute/34.052238,-118.243344:25.775084,-80.194702/json?key=rIKRakv4vEoPwsat6J3VQnKa4MrwmEDu&vehicleCommercial=true&vehicleMaxSpeed=129&vehicleWeight=36287&vehicleAxleWeight=9072&vehicleLength=19.8&vehicleWidth=2.3&vehicleHeight=4.1&travelMode=truck&unitSystem=imperial&sectionType=country:1  Failed to load resource: the server responded with a status of 400 ()
+routes.tsx:507 Route calculation response: Object
+routes.tsx:608 No route data available from TomTom API
