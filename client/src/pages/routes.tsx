@@ -24,6 +24,7 @@ export default function Routes() {
   const [selectedRoute, setSelectedRoute] = useState<RouteType | null>(null);
   const [map, setMap] = useState<tt.Map | null>(null);
   const [isTomTomLoaded, setIsTomTomLoaded] = useState(false);
+  const [mapMarkers, setMapMarkers] = useState<any[]>([]);
   const mapRef = useRef<HTMLDivElement>(null);
 
   const { data: routes = [], isLoading } = useQuery({
@@ -226,42 +227,50 @@ export default function Routes() {
           // Display route on map
           if (map) {
             // Clear existing markers and routes
-            map.getMarkers().forEach(marker => marker.remove());
-            map.getLayers().forEach(layer => {
-              if (layer.getId && layer.getId().includes('route')) {
-                map.removeLayer(layer);
-              }
-            });
+            mapMarkers.forEach((marker: any) => marker.remove());
+            setMapMarkers([]);
+            
+            // Remove existing route layers
+            if (map.getSource('route')) {
+              map.removeLayer('route');
+              map.removeSource('route');
+            }
 
             // Add origin marker
-            new tt.Marker({ color: 'green' })
+            const originMarker = new tt.Marker({ color: 'green' })
               .setLngLat([originCoords.lng, originCoords.lat])
               .setPopup(new tt.Popup().setHTML(`<strong>Origin:</strong><br>${origin}`))
               .addTo(map);
 
             // Add destination marker
-            new tt.Marker({ color: 'red' })
+            const destMarker = new tt.Marker({ color: 'red' })
               .setLngLat([destCoords.lng, destCoords.lat])
               .setPopup(new tt.Popup().setHTML(`<strong>Destination:</strong><br>${destination}`))
               .addTo(map);
 
+            setMapMarkers([originMarker, destMarker]);
+
             // Add route line
-            const routeGeoJson = route.legs[0].points.map(point => [point.longitude, point.latitude]);
+            const routeGeoJson = route.legs[0].points.map((point: any) => [point.longitude, point.latitude]);
             
+            // Add the route as a source first
+            map.addSource('truck-route', {
+              'type': 'geojson',
+              'data': {
+                'type': 'Feature',
+                'properties': {},
+                'geometry': {
+                  'type': 'LineString',
+                  'coordinates': routeGeoJson
+                }
+              }
+            });
+
+            // Then add the layer
             map.addLayer({
               'id': 'truck-route',
               'type': 'line',
-              'source': {
-                'type': 'geojson',
-                'data': {
-                  'type': 'Feature',
-                  'properties': {},
-                  'geometry': {
-                    'type': 'LineString',
-                    'coordinates': routeGeoJson
-                  }
-                }
-              },
+              'source': 'truck-route',
               'layout': {
                 'line-join': 'round',
                 'line-cap': 'round'
@@ -275,7 +284,7 @@ export default function Routes() {
 
             // Fit map to route bounds
             const bounds = new tt.LngLatBounds();
-            routeGeoJson.forEach(coord => bounds.extend(coord));
+            routeGeoJson.forEach((coord: [number, number]) => bounds.extend(coord));
             map.fitBounds(bounds, { padding: 50 });
           }
 
@@ -348,24 +357,28 @@ export default function Routes() {
     if (!map || !isTomTomLoaded) return;
 
     try {
-      // Clear existing markers and routes
-      map.getMarkers().forEach(marker => marker.remove());
-      map.getLayers().forEach(layer => {
-        if (layer.getId && layer.getId().includes('route')) {
-          map.removeLayer(layer);
-        }
-      });
+      // Clear existing markers
+      mapMarkers.forEach(marker => marker.remove());
+      setMapMarkers([]);
 
-      // Add markers
-      new tt.Marker({ color: 'green' })
+      // Remove existing route layers
+      if (map.getSource('route')) {
+        map.removeLayer('route');
+        map.removeSource('route');
+      }
+
+      // Add markers and store them
+      const originMarker = new tt.Marker({ color: 'green' })
         .setLngLat([route.originLng!, route.originLat!])
         .setPopup(new tt.Popup().setHTML(`<strong>Origin:</strong><br>${route.origin}`))
         .addTo(map);
 
-      new tt.Marker({ color: 'red' })
+      const destMarker = new tt.Marker({ color: 'red' })
         .setLngLat([route.destinationLng!, route.destinationLat!])
         .setPopup(new tt.Popup().setHTML(`<strong>Destination:</strong><br>${route.destination}`))
         .addTo(map);
+
+      setMapMarkers([originMarker, destMarker]);
 
       // Calculate and display route
       const routeResponse = await ttServices.services.calculateRoute({
@@ -385,22 +398,26 @@ export default function Routes() {
       });
 
       if (routeResponse.routes && routeResponse.routes.length > 0) {
-        const routeGeoJson = routeResponse.routes[0].legs[0].points.map(point => [point.longitude, point.latitude]);
+        const routeData = routeResponse.routes[0];
+        const routeGeoJson = routeData.legs[0].points.map((point: any) => [point.longitude, point.latitude]);
         
-        map.addLayer({
-          'id': 'displayed-route',
-          'type': 'line',
-          'source': {
-            'type': 'geojson',
-            'data': {
-              'type': 'Feature',
-              'properties': {},
-              'geometry': {
-                'type': 'LineString',
-                'coordinates': routeGeoJson
-              }
+        // Add the route as a source and layer
+        map.addSource('route', {
+          'type': 'geojson',
+          'data': {
+            'type': 'Feature',
+            'properties': {},
+            'geometry': {
+              'type': 'LineString',
+              'coordinates': routeGeoJson
             }
-          },
+          }
+        });
+
+        map.addLayer({
+          'id': 'route',
+          'type': 'line',
+          'source': 'route',
           'layout': {
             'line-join': 'round',
             'line-cap': 'round'
@@ -412,8 +429,9 @@ export default function Routes() {
           }
         });
 
+        // Fit map to route bounds
         const bounds = new tt.LngLatBounds();
-        routeGeoJson.forEach(coord => bounds.extend(coord));
+        routeGeoJson.forEach((coord: [number, number]) => bounds.extend(coord));
         map.fitBounds(bounds, { padding: 50 });
       }
     } catch (error) {

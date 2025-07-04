@@ -1,0 +1,73 @@
+chunk-WERSD76P.js?v=57ddf1a7:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+routes.tsx:128 Map tab selected, initializing TomTom map...
+routes.tsx:80 Initializing TomTom map...
+routes.tsx:82 This page appears to be missing CSS declarations for Maps SDK for Web, which may cause the map to display incorrectly. Please ensure your page includes maps.css, as described in https://developer.tomtom.com/maps-sdk-web-js/documentation
+Ur.e3._detectMissingCSS @ @tomtom-international_web-sdk-maps.js?v=57ddf1a7:19299
+i2._setupContainer @ @tomtom-international_web-sdk-maps.js?v=57ddf1a7:17147
+i2 @ @tomtom-international_web-sdk-maps.js?v=57ddf1a7:16890
+Ur @ @tomtom-international_web-sdk-maps.js?v=57ddf1a7:19300
+(anonymous) @ @tomtom-international_web-sdk-maps.js?v=57ddf1a7:19524
+map @ @tomtom-international_web-sdk-maps.js?v=57ddf1a7:19698
+(anonymous) @ routes.tsx:82
+(anonymous) @ routes.tsx:129
+routes.tsx:90 TomTom map loaded successfully
+routes.tsx:420 Error displaying route: TypeError: map.getMarkers is not a function
+    at displayRouteOnMap (routes.tsx:352:11)
+    at onClick (routes.tsx:641:44)
+    at HTMLUnknownElement.callCallback2 (chunk-WERSD76P.js?v=57ddf1a7:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-WERSD76P.js?v=57ddf1a7:3699:24)
+    at invokeGuardedCallback (chunk-WERSD76P.js?v=57ddf1a7:3733:39)
+    at invokeGuardedCallbackAndCatchFirstError (chunk-WERSD76P.js?v=57ddf1a7:3736:33)
+    at executeDispatch (chunk-WERSD76P.js?v=57ddf1a7:7014:11)
+    at processDispatchQueueItemsInOrder (chunk-WERSD76P.js?v=57ddf1a7:7034:15)
+    at processDispatchQueue (chunk-WERSD76P.js?v=57ddf1a7:7043:13)
+    at dispatchEventsForPlugins (chunk-WERSD76P.js?v=57ddf1a7:7051:11)
+displayRouteOnMap @ routes.tsx:420
+routes.tsx:420 Error displaying route: TypeError: map.getMarkers is not a function
+    at displayRouteOnMap (routes.tsx:352:11)
+    at onClick (routes.tsx:641:44)
+    at HTMLUnknownElement.callCallback2 (chunk-WERSD76P.js?v=57ddf1a7:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-WERSD76P.js?v=57ddf1a7:3699:24)
+    at invokeGuardedCallback (chunk-WERSD76P.js?v=57ddf1a7:3733:39)
+    at invokeGuardedCallbackAndCatchFirstError (chunk-WERSD76P.js?v=57ddf1a7:3736:33)
+    at executeDispatch (chunk-WERSD76P.js?v=57ddf1a7:7014:11)
+    at processDispatchQueueItemsInOrder (chunk-WERSD76P.js?v=57ddf1a7:7034:15)
+    at processDispatchQueue (chunk-WERSD76P.js?v=57ddf1a7:7043:13)
+    at dispatchEventsForPlugins (chunk-WERSD76P.js?v=57ddf1a7:7051:11)
+displayRouteOnMap @ routes.tsx:420
+routes.tsx:420 Error displaying route: TypeError: map.getMarkers is not a function
+    at displayRouteOnMap (routes.tsx:352:11)
+    at onClick (routes.tsx:641:44)
+    at HTMLUnknownElement.callCallback2 (chunk-WERSD76P.js?v=57ddf1a7:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-WERSD76P.js?v=57ddf1a7:3699:24)
+    at invokeGuardedCallback (chunk-WERSD76P.js?v=57ddf1a7:3733:39)
+    at invokeGuardedCallbackAndCatchFirstError (chunk-WERSD76P.js?v=57ddf1a7:3736:33)
+    at executeDispatch (chunk-WERSD76P.js?v=57ddf1a7:7014:11)
+    at processDispatchQueueItemsInOrder (chunk-WERSD76P.js?v=57ddf1a7:7034:15)
+    at processDispatchQueue (chunk-WERSD76P.js?v=57ddf1a7:7043:13)
+    at dispatchEventsForPlugins (chunk-WERSD76P.js?v=57ddf1a7:7051:11)
+displayRouteOnMap @ routes.tsx:420
+routes.tsx:420 Error displaying route: TypeError: map.getMarkers is not a function
+    at displayRouteOnMap (routes.tsx:352:11)
+    at onClick (routes.tsx:641:44)
+    at HTMLUnknownElement.callCallback2 (chunk-WERSD76P.js?v=57ddf1a7:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-WERSD76P.js?v=57ddf1a7:3699:24)
+    at invokeGuardedCallback (chunk-WERSD76P.js?v=57ddf1a7:3733:39)
+    at invokeGuardedCallbackAndCatchFirstError (chunk-WERSD76P.js?v=57ddf1a7:3736:33)
+    at executeDispatch (chunk-WERSD76P.js?v=57ddf1a7:7014:11)
+    at processDispatchQueueItemsInOrder (chunk-WERSD76P.js?v=57ddf1a7:7034:15)
+    at processDispatchQueue (chunk-WERSD76P.js?v=57ddf1a7:7043:13)
+    at dispatchEventsForPlugins (chunk-WERSD76P.js?v=57ddf1a7:7051:11)
+displayRouteOnMap @ routes.tsx:420
+routes.tsx:420 Error displaying route: TypeError: map.getMarkers is not a function
+    at displayRouteOnMap (routes.tsx:352:11)
+    at onClick (routes.tsx:641:44)
+    at HTMLUnknownElement.callCallback2 (chunk-WERSD76P.js?v=57ddf1a7:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-WERSD76P.js?v=57ddf1a7:3699:24)
+    at invokeGuardedCallback (chunk-WERSD76P.js?v=57ddf1a7:3733:39)
+    at invokeGuardedCallbackAndCatchFirstError (chunk-WERSD76P.js?v=57ddf1a7:3736:33)
+    at executeDispatch (chunk-WERSD76P.js?v=57ddf1a7:7014:11)
+    at processDispatchQueueItemsInOrder (chunk-WERSD76P.js?v=57ddf1a7:7034:15)
+    at processDispatchQueue (chunk-WERSD76P.js?v=57ddf1a7:7043:13)
+    at dispatchEventsForPlugins (chunk-WERSD76P.js?v=57ddf1a7:7051:11)
+displayRouteOnMap @ routes.tsx:420
