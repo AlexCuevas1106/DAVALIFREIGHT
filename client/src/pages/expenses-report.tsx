@@ -1,5 +1,4 @@
 import { useState } from "react";
-
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { 
   Plus, 
@@ -15,7 +15,9 @@ import {
   Camera, 
   FileText, 
   Download,
-  RotateCcw
+  RotateCcw,
+  Receipt,
+  DollarSign
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +58,19 @@ interface MileageEntry {
   milesLoaded: string;
   milesEmpty: string;
 }
+
+const EXPENSE_CATEGORIES = [
+  "Tolls",
+  "Parking",
+  "Meals",
+  "Lodging",
+  "Maintenance",
+  "Communication",
+  "Permits",
+  "Medical",
+  "Safety Equipment",
+  "Other"
+];
 
 export default function ExpensesReport() {
   const [tripRecord, setTripRecord] = useState<TripRecord>({
@@ -164,6 +179,10 @@ export default function ExpensesReport() {
     updateFuelEntry(id, 'image', file);
   };
 
+  const updateTripRecord = (field: keyof TripRecord, value: string) => {
+    setTripRecord(prev => ({ ...prev, [field]: value }));
+  };
+
   const generatePDF = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -176,24 +195,23 @@ export default function ExpensesReport() {
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             .header { text-align: center; margin-bottom: 30px; }
-            .section { margin-bottom: 25px; }
-            .section h3 { border-bottom: 2px solid #333; padding-bottom: 5px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            .section { margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
             th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f5f5f5; }
-            .summary { background-color: #f9f9f9; padding: 15px; border-radius: 5px; }
+            th { background-color: #f2f2f2; }
+            .summary { text-align: right; margin-top: 10px; }
           </style>
         </head>
         <body>
           <div class="header">
-            <h1>Driver Trip Report</h1>
-            <p>Load Number: ${tripRecord.loadNumber}</p>
+            <h1>DAVALI FREIGHT COMPANY</h1>
+            <h2>TRIP EXPENSE REPORT</h2>
             <p>Driver: ${driver.name}</p>
             <p>Date: ${new Date().toLocaleDateString()}</p>
           </div>
 
           <div class="section">
-            <h3>Trip Information</h3>
+            <h3>Trip Record</h3>
             <table>
               <tr><td><strong>Load Number:</strong></td><td>${tripRecord.loadNumber}</td></tr>
               <tr><td><strong>Empty From:</strong></td><td>${tripRecord.emptyFrom}</td></tr>
@@ -291,6 +309,10 @@ export default function ExpensesReport() {
     setMileageEntries([{ id: '1', state: '', odometerReading: '', highwaysTraveled: '', milesLoaded: '', milesEmpty: '' }]);
   };
 
+  const totalFuelCost = fuelEntries.reduce((sum, entry) => sum + entry.cost, 0);
+  const totalMiscCost = miscEntries.reduce((sum, entry) => sum + entry.amount, 0);
+  const totalGallons = fuelEntries.reduce((sum, entry) => sum + entry.gallons, 0);
+
   return (
     <>
       <Sidebar />
@@ -300,11 +322,11 @@ export default function ExpensesReport() {
           status="on_duty"
         />
         
-        <div className="p-6 space-y-6">
+        <div className="p-6 max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Trip Record</h1>
-              <p className="text-gray-600">State law requires complete and accurate record be filled out for each trip.</p>
+              <h1 className="text-3xl font-bold text-gray-900">Expense Report</h1>
+              <p className="text-gray-600 mt-1">Manage your trip expenses and mileage log</p>
             </div>
             <div className="flex space-x-3">
               <Button 
@@ -317,83 +339,129 @@ export default function ExpensesReport() {
               </Button>
               <Button 
                 onClick={generatePDF}
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
+                className="flex items-center space-x-2"
               >
                 <Download className="w-4 h-4" />
-                <span>Save Report</span>
+                <span>Generate PDF</span>
               </Button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Trip Info and Forms */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Trip Information */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            {/* Trip Record */}
+            <div className="xl:col-span-1">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <FileText className="w-5 h-5" />
-                    <span>Trip Information</span>
+                    <span>Trip Record</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
                     <div>
-                      <Label htmlFor="loadNumber">Load Number</Label>
+                      <Label className="text-xs">Load Number</Label>
                       <Input
-                        id="loadNumber"
                         value={tripRecord.loadNumber}
-                        onChange={(e) => setTripRecord({...tripRecord, loadNumber: e.target.value})}
-                        placeholder="Enter load number"
+                        onChange={(e) => updateTripRecord('loadNumber', e.target.value)}
+                        placeholder="Load number"
+                        className="text-sm"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="totalMiles">Total Miles</Label>
+                      <Label className="text-xs">Empty From</Label>
                       <Input
-                        id="totalMiles"
-                        value={tripRecord.totalMiles}
-                        onChange={(e) => setTripRecord({...tripRecord, totalMiles: e.target.value})}
-                        placeholder="Total miles for trip"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="emptyFrom">Empty From</Label>
-                      <Input
-                        id="emptyFrom"
                         value={tripRecord.emptyFrom}
-                        onChange={(e) => setTripRecord({...tripRecord, emptyFrom: e.target.value})}
-                        placeholder="Starting location"
+                        onChange={(e) => updateTripRecord('emptyFrom', e.target.value)}
+                        placeholder="Origin city"
+                        className="text-sm"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="emptyTo">Empty To</Label>
+                      <Label className="text-xs">Empty To</Label>
                       <Input
-                        id="emptyTo"
                         value={tripRecord.emptyTo}
-                        onChange={(e) => setTripRecord({...tripRecord, emptyTo: e.target.value})}
-                        placeholder="Pickup location"
+                        onChange={(e) => updateTripRecord('emptyTo', e.target.value)}
+                        placeholder="Pickup city"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Loaded From</Label>
+                      <Input
+                        value={tripRecord.loadedFrom}
+                        onChange={(e) => updateTripRecord('loadedFrom', e.target.value)}
+                        placeholder="Pickup city"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Loaded To</Label>
+                      <Input
+                        value={tripRecord.loadedTo}
+                        onChange={(e) => updateTripRecord('loadedTo', e.target.value)}
+                        placeholder="Delivery city"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Start Odometer</Label>
+                      <Input
+                        type="number"
+                        value={tripRecord.startOdometer}
+                        onChange={(e) => updateTripRecord('startOdometer', e.target.value)}
+                        placeholder="Starting miles"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Finish Odometer</Label>
+                      <Input
+                        type="number"
+                        value={tripRecord.finishOdometer}
+                        onChange={(e) => updateTripRecord('finishOdometer', e.target.value)}
+                        placeholder="Ending miles"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Total Miles</Label>
+                      <Input
+                        type="number"
+                        value={tripRecord.totalMiles}
+                        onChange={(e) => updateTripRecord('totalMiles', e.target.value)}
+                        placeholder="Total trip miles"
+                        className="text-sm"
                       />
                     </div>
                   </div>
                 </CardContent>
               </Card>
+            </div>
 
-              {/* Fuel Tracking */}
+            {/* Expenses */}
+            <div className="xl:col-span-2 space-y-6">
+              {/* Fuel Expenses */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center space-x-2">
-                      <FileText className="w-5 h-5" />
-                      <span>Fuel Tracking</span>
-                    </span>
-                    <Button
-                      onClick={addFuelEntry}
-                      size="sm"
-                      className="flex items-center space-x-1"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Add Entry</span>
-                    </Button>
+                    <div className="flex items-center space-x-2">
+                      <Receipt className="w-5 h-5" />
+                      <span>Fuel Expenses</span>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <Badge variant="outline" className="text-sm">
+                        {totalGallons.toFixed(2)} gal | ${totalFuelCost.toFixed(2)}
+                      </Badge>
+                      <Button
+                        onClick={addFuelEntry}
+                        size="sm"
+                        className="flex items-center space-x-1"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Entry</span>
+                      </Button>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -477,6 +545,93 @@ export default function ExpensesReport() {
                                 <Camera className="w-4 h-4" />
                               </Button>
                             </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Miscellaneous Expenses */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <DollarSign className="w-5 h-5" />
+                      <span>Miscellaneous Expenses</span>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <Badge variant="outline" className="text-sm">
+                        Total: ${totalMiscCost.toFixed(2)}
+                      </Badge>
+                      <Button
+                        onClick={addMiscEntry}
+                        size="sm"
+                        className="flex items-center space-x-1"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Entry</span>
+                      </Button>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {miscEntries.map((entry, index) => (
+                      <div key={entry.id} className="border rounded-lg p-4 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-medium">Misc Entry #{index + 1}</h4>
+                          {miscEntries.length > 1 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteMiscEntry(entry.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div>
+                            <Label className="text-xs">Description</Label>
+                            <Textarea
+                              value={entry.description}
+                              onChange={(e) => updateMiscEntry(entry.id, 'description', e.target.value)}
+                              placeholder="Describe the expense"
+                              rows={2}
+                              className="text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Category</Label>
+                            <Select
+                              value={entry.category}
+                              onValueChange={(value) => updateMiscEntry(entry.id, 'category', value)}
+                            >
+                              <SelectTrigger className="text-sm">
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {EXPENSE_CATEGORIES.map((category) => (
+                                  <SelectItem key={category} value={category}>
+                                    {category}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs">Amount ($)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={entry.amount || ''}
+                              onChange={(e) => updateMiscEntry(entry.id, 'amount', parseFloat(e.target.value) || 0)}
+                              placeholder="0.00"
+                              className="text-sm"
+                            />
                           </div>
                         </div>
                       </div>

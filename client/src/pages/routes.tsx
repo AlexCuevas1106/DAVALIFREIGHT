@@ -67,7 +67,7 @@ export default function Routes() {
   useEffect(() => {
     const initTomTomMap = async () => {
       try {
-        if (mapRef.current && TOMTOM_CONFIG.apiKey && TOMTOM_CONFIG.apiKey !== "YOUR_TOMTOM_API_KEY_HERE") {
+        if (mapRef.current && TOMTOM_CONFIG.apiKey) {
           console.log("Initializing TomTom map with API key:", TOMTOM_CONFIG.apiKey.substring(0, 8) + "...");
           
           const mapInstance = tt.map({
@@ -104,11 +104,6 @@ export default function Routes() {
         } else {
           console.log("TomTom API key not configured");
           setIsTomTomLoaded(false);
-          toast({
-            title: "TomTom Configuration",
-            description: "Please add your TomTom API key to use mapping features",
-            variant: "destructive",
-          });
         }
       } catch (error) {
         console.error("Error initializing TomTom Maps:", error);
@@ -133,7 +128,7 @@ export default function Routes() {
   }, [toast]);
 
   const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number }> => {
-    if (!isTomTomLoaded || TOMTOM_CONFIG.apiKey === "YOUR_TOMTOM_API_KEY_HERE") {
+    if (!isTomTomLoaded || !TOMTOM_CONFIG.apiKey) {
       // Fallback coordinates if TomTom fails
       return { lat: 25.7617, lng: -80.1918 };
     }
@@ -601,7 +596,7 @@ export default function Routes() {
                       <div className="text-center">
                         <Truck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                         <p className="text-muted-foreground">
-                          {TOMTOM_CONFIG.apiKey === "YOUR_TOMTOM_API_KEY_HERE" 
+                          {!TOMTOM_CONFIG.apiKey 
                             ? "Please configure your TomTom API key" 
                             : "Loading TomTom Maps..."
                           }
