@@ -63,72 +63,93 @@ export default function Routes() {
     },
   });
 
-  // Initialize TomTom Map with proper container detection
+  // Initialize TomTom Map with proper container detection and retry mechanism
   const initializeMap = useCallback(async () => {
-    try {
-      if (!TOMTOM_CONFIG.apiKey) {
-        console.log("TomTom API key not configured");
-        setIsTomTomLoaded(false);
-        return;
-      }
+    const maxRetries = 10;
+    let retryCount = 0;
 
-      if (!mapRef.current) {
-        console.log("Map container not ready");
-        return false;
-      }
+    const tryInitialize = () => {
+      return new Promise<boolean>((resolve) => {
+        if (!TOMTOM_CONFIG.apiKey || TOMTOM_CONFIG.apiKey === "YOUR_TOMTOM_API_KEY_HERE") {
+          console.log("TomTom API key not configured");
+          setIsTomTomLoaded(false);
+          resolve(false);
+          return;
+        }
 
-      console.log("Initializing TomTom map...");
+        if (!mapRef.current) {
+          if (retryCount < maxRetries) {
+            retryCount++;
+            console.log(`Map container not ready, retrying (${retryCount}/${maxRetries})...`);
+            setTimeout(() => {
+              tryInitialize().then(resolve);
+            }, 200);
+            return;
+          } else {
+            console.log("Map container not ready after maximum retries");
+            resolve(false);
+            return;
+          }
+        }
 
-      const mapInstance = tt.map({
-        key: TOMTOM_CONFIG.apiKey,
-        container: mapRef.current,
-        center: [TOMTOM_CONFIG.defaultCenter.lng, TOMTOM_CONFIG.defaultCenter.lat],
-        zoom: TOMTOM_CONFIG.defaultZoom,
+        try {
+          console.log("Initializing TomTom map...");
+
+          const mapInstance = tt.map({
+            key: TOMTOM_CONFIG.apiKey,
+            container: mapRef.current,
+            center: [TOMTOM_CONFIG.defaultCenter.lng, TOMTOM_CONFIG.defaultCenter.lat],
+            zoom: TOMTOM_CONFIG.defaultZoom,
+          });
+
+          mapInstance.on('load', () => {
+            console.log("TomTom map loaded successfully");
+            setMap(mapInstance);
+            setIsTomTomLoaded(true);
+
+            // Add navigation controls
+            mapInstance.addControl(new tt.NavigationControl());
+            mapInstance.addControl(new tt.FullscreenControl());
+            resolve(true);
+          });
+
+          mapInstance.on('error', (error) => {
+            console.error("TomTom map error:", error);
+            setIsTomTomLoaded(false);
+            toast({
+              title: "Error de mapas",
+              description: "No se pudo cargar TomTom Maps. Verifica la clave API y la conexión a internet.",
+              variant: "destructive",
+            });
+            resolve(false);
+          });
+
+        } catch (error) {
+          console.error("Error initializing TomTom Maps:", error);
+          toast({
+            title: "Error de mapas",
+            description: "No se pudo inicializar TomTom Maps. Por favor verifica tu clave API.",
+            variant: "destructive",
+          });
+          setIsTomTomLoaded(false);
+          resolve(false);
+        }
       });
+    };
 
-      mapInstance.on('load', () => {
-        console.log("TomTom map loaded successfully");
-        setMap(mapInstance);
-        setIsTomTomLoaded(true);
-
-        // Add navigation controls
-        mapInstance.addControl(new tt.NavigationControl());
-        mapInstance.addControl(new tt.FullscreenControl());
-      });
-
-      mapInstance.on('error', (error) => {
-        console.error("TomTom map error:", error);
-        setIsTomTomLoaded(false);
-        toast({
-          title: "Error de mapas",
-          description: "No se pudo cargar TomTom Maps. Verifica la clave API y la conexión a internet.",
-          variant: "destructive",
-        });
-      });
-
-      return true;
-    } catch (error) {
-      console.error("Error initializing TomTom Maps:", error);
-      toast({
-        title: "Error de mapas",
-        description: "No se pudo inicializar TomTom Maps. Por favor verifica tu clave API.",
-        variant: "destructive",
-      });
-      setIsTomTomLoaded(false);
-      return false;
-    }
+    return tryInitialize();
   }, [toast]);
 
   // Initialize map when the map tab is selected
   const handleTabChange = useCallback((value: string) => {
     if (value === 'map' && !map && !isTomTomLoaded) {
-      // Small delay to ensure the tab content is rendered
+      // Longer delay to ensure the tab content is fully rendered
       setTimeout(() => {
         if (mapRef.current) {
           console.log("Map tab selected, initializing TomTom map...");
           initializeMap();
         }
-      }, 100);
+      }, 500);
     }
   }, [map, isTomTomLoaded, initializeMap]);
 
@@ -368,7 +389,7 @@ export default function Routes() {
   };
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371; // Radio de la Tierra en km
+    const R = 3959; // Radio de la Tierra en millas (cambio de km a millas)
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -701,10 +722,15 @@ export default function Routes() {
                           </div>
                         </div>
                         <div className="flex items-center gap-4 text-sm">
-                          {route.distance && (
+                          {route.totalMiles ? (
                             <div className="flex items-center gap-1">
                               <Truck className="h-4 w-4" />
-                              {route.distance} km
+                              {route.totalMiles} millas
+                            </div>
+                          ) : route.distance && (
+                            <div className="flex items-center gap-1">
+                              <Truck className="h-4 w-4" />
+                              {Math.round(route.distance * 0.621371)} millas (convertido)
                             </div>
                           )}
                           {route.estimatedDuration && (
@@ -775,21 +801,21 @@ export default function Routes() {
                               {route.totalMiles && (
                                 <div className="space-y-1">
                                   <p className="text-xs text-muted-foreground">
-                                    <strong>{route.totalMiles} miles</strong> (Truck Optimized)
+                                    <strong>{route.totalMiles} millas</strong> (Optimizado para Camión)
                                   </p>
                                   {route.estimatedDuration && (
                                     <p className="text-xs text-muted-foreground">
-                                      Estimated: {Math.floor(route.estimatedDuration / 60)}h {route.estimatedDuration % 60}m
+                                      Estimado: {Math.floor(route.estimatedDuration / 60)}h {route.estimatedDuration % 60}m
                                     </p>
                                   )}
                                   {route.stateBreakdown && (
                                     <div className="mt-2">
-                                      <p className="text-xs font-medium text-muted-foreground mb-1">Miles by State:</p>
+                                      <p className="text-xs font-medium text-muted-foreground mb-1">Millas por Estado:</p>
                                       <div className="space-y-1">
                                         {JSON.parse(route.stateBreakdown).map((stateInfo: {state: string, miles: number}, index: number) => (
                                           <div key={index} className="flex justify-between text-xs">
                                             <span className="text-muted-foreground">{stateInfo.state}:</span>
-                                            <span className="font-medium">{stateInfo.miles} mi</span>
+                                            <span className="font-medium">{stateInfo.miles} millas</span>
                                           </div>
                                         ))}
                                       </div>
@@ -799,7 +825,7 @@ export default function Routes() {
                               )}
                               {!route.totalMiles && route.distance && (
                                 <p className="text-xs text-muted-foreground">
-                                  {route.distance} km (Legacy data)
+                                  {Math.round(route.distance * 0.621371)} millas (convertido de km)
                                 </p>
                               )}
                               <Badge size="sm" className={getStatusColor(route.status)}>
