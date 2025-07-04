@@ -524,7 +524,7 @@ export default function Routes() {
       const vehicleHeightM = Math.round(13.5 * 0.3048 * 10) / 10; // 13.5 ft to meters = 4.1 m
       const vehicleMaxSpeedKmh = Math.round(80 * 1.60934); // 80 mph to km/h = 129 km/h
 
-      const routingApiUrl = `https://api.tomtom.com/routing/1/calculateRoute/${route.originLat},${route.originLng}:${route.destinationLat},${route.destinationLng}/json?key=${apiKey}&vehicleCommercial=true&vehicleMaxSpeed=${vehicleMaxSpeedKmh}&vehicleWeight=${vehicleWeightKg}&vehicleAxleWeight=${vehicleAxleWeightKg}&vehicleLength=${vehicleLengthM}&vehicleWidth=${vehicleWidthM}&vehicleHeight=${vehicleHeightM}&travelMode=truck&unitSystem=imperial&instructionsType=text&sectionType=travelMode&report=effectiveSettings`;
+      const routingApiUrl = `https://api.tomtom.com/routing/1/calculateRoute/${route.originLat},${route.originLng}:${route.destinationLat},${route.destinationLng}/json?key=${apiKey}&vehicleCommercial=true&vehicleMaxSpeed=${vehicleMaxSpeedKmh}&vehicleWeight=${vehicleWeightKg}&vehicleAxleWeight=${vehicleAxleWeightKg}&vehicleLength=${vehicleLengthM}&vehicleWidth=${vehicleWidthM}&vehicleHeight=${vehicleHeightM}&travelMode=truck&instructionsType=text&sectionType=country`;
 
       console.log('Calculating truck route with exact specifications:');
       console.log(`- Weight: ${vehicleWeightKg} kg (80,000 lbs)`);
