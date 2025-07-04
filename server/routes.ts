@@ -46,7 +46,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/documents/upload", async (req, res) => {
     try {
       const { fileName, fileType, driverId, vehicleId, fileData, fileSize, originalName } = req.body;
-      
+
       const document = await storage.createDocumentFile({
         fileName,
         originalName: originalName || fileName,
@@ -364,7 +364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/dashboard/:driverId", async (req, res) => {
     try {
       const driverId = parseInt(req.params.driverId);
-      
+
       const [driver, hos, inspections, documents, activities, shipments] = await Promise.all([
         storage.getDriver(driverId),
         storage.getHoSByDriver(driverId),

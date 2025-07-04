@@ -491,7 +491,7 @@ export default function Routes() {
       const vehicleHeightM = Math.round(13.5 * 0.3048 * 10) / 10; // 13.5 ft to meters = 4.1 m
       const vehicleMaxSpeedKmh = Math.round(80 * 1.60934); // 80 mph to km/h = 129 km/h
 
-      const routingApiUrl = `https://api.tomtom.com/routing/1/calculateRoute/${route.originLat},${route.originLng}:${route.destinationLat},${route.destinationLng}/json?key=${apiKey}&vehicleCommercial=true&vehicleMaxSpeed=${vehicleMaxSpeedKmh}&vehicleWeight=${vehicleWeightKg}&vehicleAxleWeight=${vehicleAxleWeightKg}&vehicleLength=${vehicleLengthM}&vehicleWidth=${vehicleWidthM}&vehicleHeight=${vehicleHeightM}&travelMode=truck&unitSystem=imperial&sectionType=country`;
+      const routingApiUrl = `https://api.tomtom.com/routing/1/calculateRoute/${route.originLat},${route.originLng}:${route.destinationLat},${route.destinationLng}/json?key=${apiKey}&vehicleCommercial=true&vehicleMaxSpeed=${vehicleMaxSpeedKmh}&vehicleWeight=${vehicleWeightKg}&vehicleAxleWeight=${vehicleAxleWeightKg}&vehicleLength=${vehicleLengthM}&vehicleWidth=${vehicleWidthM}&vehicleHeight=${vehicleHeightM}&travelMode=truck&unitSystem=imperial&sectionType=state`;
 
       console.log('Calculating truck route with exact specifications:');
       console.log(`- Weight: ${vehicleWeightKg} kg (80,000 lbs)`);
@@ -517,36 +517,63 @@ export default function Routes() {
         // Process sections to get state-by-state breakdown
         const stateBreakdown: Array<{state: string, miles: number}> = [];
 
-        if (routeInfo.sections) {
-          routeInfo.sections.forEach((section: any) => {
-            if (section.country === 'United States' && section.state) {
-              const sectionMiles = Math.round((section.lengthInMeters * 0.000621371) * 10) / 10;
-
+        if (routeInfo.sections && routeInfo.sections.length > 0) {
+          console.log('Processing route sections:', routeInfo.sections);
+          
+          routeInfo.sections.forEach((section: any, index: number) => {
+            console.log(`Section ${index}:`, section);
+            
+            // TomTom sections can have different structures depending on the response
+            const sectionMiles = Math.round((section.lengthInMeters * 0.000621371) * 10) / 10;
+            
+            // Try to get state name from different possible fields
+            let stateName = section.state || section.countrySubdivision || section.administrativeArea;
+            
+            if (stateName && sectionMiles > 0) {
               // Check if state already exists in breakdown
-              const existingStateIndex = stateBreakdown.findIndex(item => item.state === section.state);
+              const existingStateIndex = stateBreakdown.findIndex(item => item.state === stateName);
               if (existingStateIndex >= 0) {
                 stateBreakdown[existingStateIndex].miles += sectionMiles;
                 stateBreakdown[existingStateIndex].miles = Math.round(stateBreakdown[existingStateIndex].miles * 10) / 10;
               } else {
                 stateBreakdown.push({
-                  state: section.state,
+                  state: stateName,
                   miles: sectionMiles
                 });
               }
             }
           });
         }
+        
+        // If no state breakdown available, try to estimate based on coordinates
+        if (stateBreakdown.length === 0) {
+          console.log('No state sections found, creating estimated breakdown');
+          // For now, assign all miles to a general entry
+          stateBreakdown.push({
+            state: 'Multiple States',
+            miles: totalDistanceMiles
+          });
+        }
+        
+        console.log('Final state breakdown:', stateBreakdown);
 
         // Update route in storage with calculated information
         try {
-          await apiRequest(`/api/routes/${route.id}`, {
+          const response = await fetch(`/api/routes/${route.id}`, {
             method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
             body: JSON.stringify({
               totalMiles: totalDistanceMiles,
               estimatedDuration: totalTimeDuration,
               stateBreakdown: JSON.stringify(stateBreakdown)
             }),
           });
+          
+          if (!response.ok) {
+            throw new Error('Failed to update route');
+          }
 
           // Refetch routes to update the UI
           queryClient.invalidateQueries({ queryKey: ['/api/routes'] });
@@ -799,12 +826,20 @@ export default function Routes() {
                           <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                             <h4 className="text-sm font-medium text-gray-900 mb-2">Millas por Estado:</h4>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                              {JSON.parse(route.stateBreakdown).map((stateInfo: {state: string, miles: number}, index: number) => (
-                                <div key={index} className="flex justify-between text-sm bg-white p-2 rounded">
-                                  <span className="text-gray-600">{stateInfo.state}:</span>
-                                  <span className="font-medium text-blue-600">{stateInfo.miles} mi</span>
-                                </div>
-                              ))}
+                              {(() => {
+                                try {
+                                  const breakdown = JSON.parse(route.stateBreakdown);
+                                  return breakdown.map((stateInfo: {state: string, miles: number}, index: number) => (
+                                    <div key={index} className="flex justify-between text-sm bg-white p-2 rounded">
+                                      <span className="text-gray-600">{stateInfo.state}:</span>
+                                      <span className="font-medium text-blue-600">{stateInfo.miles} mi</span>
+                                    </div>
+                                  ));
+                                } catch (error) {
+                                  console.error('Error parsing state breakdown:', error);
+                                  return <div className="text-sm text-red-500">Error al mostrar desglose por estado</div>;
+                                }
+                              })()}
                             </div>
                           </div>
                         )}
@@ -884,12 +919,20 @@ export default function Routes() {
                                     <div className="mt-2">
                                       <p className="text-xs font-medium text-muted-foreground mb-1">Millas por Estado:</p>
                                       <div className="space-y-1">
-                                        {JSON.parse(route.stateBreakdown).map((stateInfo: {state: string, miles: number}, index: number) => (
-                                          <div key={index} className="flex justify-between text-xs">
-                                            <span className="text-muted-foreground">{stateInfo.state}:</span>
-                                            <span className="font-medium">{stateInfo.miles} millas</span>
-                                          </div>
-                                        ))}
+                                        {(() => {
+                                          try {
+                                            const breakdown = JSON.parse(route.stateBreakdown);
+                                            return breakdown.map((stateInfo: {state: string, miles: number}, index: number) => (
+                                              <div key={index} className="flex justify-between text-xs">
+                                                <span className="text-muted-foreground">{stateInfo.state}:</span>
+                                                <span className="font-medium">{stateInfo.miles} millas</span>
+                                              </div>
+                                            ));
+                                          } catch (error) {
+                                            console.error('Error parsing state breakdown:', error);
+                                            return <div className="text-xs text-red-500">Error en desglose</div>;
+                                          }
+                                        })()}
                                       </div>
                                     </div>
                                   )}
