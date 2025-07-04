@@ -400,7 +400,15 @@ export default function Routes() {
   };
 
   const displayRouteOnMap = async (route: RouteType) => {
-    if (!map || !isTomTomLoaded) return;
+    if (!map || !isTomTomLoaded) {
+      console.log('Map not ready. Map:', !!map, 'TomTom loaded:', isTomTomLoaded);
+      toast({
+        title: "Mapa no disponible",
+        description: "El mapa no está listo. Por favor espera un momento.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     try {
       console.log('Displaying route:', route);
@@ -416,7 +424,7 @@ export default function Routes() {
         console.error('Missing coordinates for route', route);
         toast({
           title: "Error",
-          description: "This route doesn't have valid coordinates. Please recreate the route.",
+          description: "Esta ruta no tiene coordenadas válidas. Por favor recrea la ruta.",
           variant: "destructive"
         });
         return;
@@ -426,10 +434,37 @@ export default function Routes() {
       mapMarkers.forEach(marker => marker.remove());
       setMapMarkers([]);
 
-      // Remove existing route layers
-      if (map.getSource('route')) {
-        map.removeLayer('route');
-        map.removeSource('route');
+      // Remove existing route layers safely
+      try {
+        if (map.getLayer('route')) {
+          map.removeLayer('route');
+        }
+      } catch (e) {
+        console.log('Layer route does not exist');
+      }
+      
+      try {
+        if (map.getSource('route')) {
+          map.removeSource('route');
+        }
+      } catch (e) {
+        console.log('Source route does not exist');
+      }
+
+      try {
+        if (map.getLayer('truck-route')) {
+          map.removeLayer('truck-route');
+        }
+      } catch (e) {
+        console.log('Layer truck-route does not exist');
+      }
+      
+      try {
+        if (map.getSource('truck-route')) {
+          map.removeSource('truck-route');
+        }
+      } catch (e) {
+        console.log('Source truck-route does not exist');
       }
 
       // Add markers and store them
@@ -563,9 +598,27 @@ export default function Routes() {
           }
         });
         map.fitBounds(bounds, { padding: 50 });
+
+        toast({
+          title: "Ruta mostrada",
+          description: `Ruta "${route.name}" ahora visible en el mapa`,
+        });
+
+      } else {
+        console.log('No route data available from TomTom API');
+        toast({
+          title: "Error",
+          description: "No se pudo obtener los datos de la ruta desde TomTom",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error("Error displaying route:", error);
+      toast({
+        title: "Error",
+        description: "Error al mostrar la ruta en el mapa",
+        variant: "destructive"
+      });
     }
   };
 
@@ -740,6 +793,21 @@ export default function Routes() {
                             </div>
                           )}
                         </div>
+                        
+                        {/* Estado breakdown section */}
+                        {route.stateBreakdown && (
+                          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                            <h4 className="text-sm font-medium text-gray-900 mb-2">Millas por Estado:</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                              {JSON.parse(route.stateBreakdown).map((stateInfo: {state: string, miles: number}, index: number) => (
+                                <div key={index} className="flex justify-between text-sm bg-white p-2 rounded">
+                                  <span className="text-gray-600">{stateInfo.state}:</span>
+                                  <span className="font-medium text-blue-600">{stateInfo.miles} mi</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <Badge className={getStatusColor(route.status)}>
                         {getStatusText(route.status)}
@@ -791,7 +859,11 @@ export default function Routes() {
                           <Card 
                             key={route.id} 
                             className="p-3 cursor-pointer hover:bg-accent transition-colors"
-                            onClick={() => displayRouteOnMap(route)}
+                            onClick={() => {
+                              console.log('Displaying route on map:', route);
+                              displayRouteOnMap(route);
+                              setSelectedRoute(route);
+                            }}
                           >
                             <div className="space-y-1">
                               <p className="font-medium text-sm">{route.name}</p>
