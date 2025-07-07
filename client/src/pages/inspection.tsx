@@ -53,6 +53,14 @@ export default function InspectionPage() {
     fuelLevel: ''
   });
 
+  const [trailerInfo, setTrailerInfo] = useState({
+    trailerNumber: '',
+    make: '',
+    model: '',
+    year: '',
+    licensePlate: '',
+  });
+
   const [generalNotes, setGeneralNotes] = useState('');
   const [defectsFound, setDefectsFound] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -103,6 +111,19 @@ export default function InspectionPage() {
         { id: 'tie_downs', name: 'Tie Downs/Chains/Binders', status: 'ok' },
         { id: 'spare_tire', name: 'Spare Tire', status: 'ok' }
       ]
+    },
+    {
+      title: "Trailer Inspection",  // Added Trailer Inspection Section
+      items: [
+        { id: 'trailer_lights', name: 'Trailer Lights', status: 'ok' },
+        { id: 'trailer_brakes', name: 'Trailer Brakes', status: 'ok' },
+        { id: 'trailer_tires', name: 'Trailer Tires', status: 'ok' },
+        { id: 'trailer_body', name: 'Trailer Body', status: 'ok' },
+        { id: 'trailer_door', name: 'Trailer Door', status: 'ok' },
+        { id: 'trailer_floor', name: 'Trailer Floor', status: 'ok' },
+        { id: 'trailer_walls', name: 'Trailer Walls', status: 'ok' },
+        { id: 'trailer_roof', name: 'Trailer Roof', status: 'ok' },
+      ]
     }
   ]);
 
@@ -114,6 +135,7 @@ export default function InspectionPage() {
 
     // Load vehicle info if available
     fetchVehicleInfo();
+    fetchTrailerInfo();
   }, [driver, setLocation]);
 
   const fetchVehicleInfo = async () => {
@@ -135,6 +157,26 @@ export default function InspectionPage() {
       }
     } catch (error) {
       console.error('Error fetching vehicle info:', error);
+    }
+  };
+
+  const fetchTrailerInfo = async () => {
+    if (!driver?.currentTrailerId) return;
+
+    try {
+      const response = await fetch(`/api/trailers/${driver.currentTrailerId}`);
+      if (response.ok) {
+        const trailer = await response.json();
+        setTrailerInfo({
+          trailerNumber: trailer.trailerNumber || '',
+          make: trailer.make || '',
+          model: trailer.model || '',
+          year: trailer.year?.toString() || '',
+          licensePlate: trailer.licensePlate || '',
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching trailer info:', error);
     }
   };
 
@@ -188,6 +230,7 @@ export default function InspectionPage() {
         notes: generalNotes || null,
         inspectionData: {
           vehicleInfo,
+          trailerInfo,
           sections
         }
       };
@@ -369,9 +412,60 @@ export default function InspectionPage() {
               </Card>
             </div>
 
+            {/* Trailer Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Truck className="w-5 h-5 mr-2" />
+                  Trailer Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Trailer Number</Label>
+                    <Input
+                      value={trailerInfo.trailerNumber}
+                      onChange={(e) => setTrailerInfo(prev => ({ ...prev, trailerNumber: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label>License Plate</Label>
+                    <Input
+                      value={trailerInfo.licensePlate}
+                      onChange={(e) => setTrailerInfo(prev => ({ ...prev, licensePlate: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Make</Label>
+                    <Input
+                      value={trailerInfo.make}
+                      onChange={(e) => setTrailerInfo(prev => ({ ...prev, make: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label>Model</Label>
+                    <Input
+                      value={trailerInfo.model}
+                      onChange={(e) => setTrailerInfo(prev => ({ ...prev, model: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label>Year</Label>
+                    <Input
+                      value={trailerInfo.year}
+                      onChange={(e) => setTrailerInfo(prev => ({ ...prev, year: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Inspection Sections */}
             <Tabs defaultValue="0" className="mb-6">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 {sections.map((section, index) => (
                   <TabsTrigger key={index} value={index.toString()}>
                     {section.title}

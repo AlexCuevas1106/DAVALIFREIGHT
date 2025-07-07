@@ -195,6 +195,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/trailers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const trailer = await storage.getTrailer(id);
+      if (!trailer) {
+        return res.status(404).json({ message: "Trailer not found" });
+      }
+      res.json(trailer);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch trailer" });
+    }
+  });
+
   app.post("/api/trailers", async (req, res) => {
     try {
       const validatedData = insertTrailerSchema.parse(req.body);
