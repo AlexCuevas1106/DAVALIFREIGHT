@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,8 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import Sidebar from '@/components/sidebar';
-import Header from '@/components/header';
+
 import { useAuth } from '@/hooks/useAuth';
 import { 
   ClipboardCheck, 
@@ -42,7 +41,7 @@ interface InspectionSection {
 
 export default function InspectionPage() {
   const { user: driver } = useAuth();
-  const navigate = useNavigate();
+  const [location, setLocation] = useLocation();
   
   const [inspectionType, setInspectionType] = useState<'pre_trip' | 'post_trip'>('pre_trip');
   const [vehicleInfo, setVehicleInfo] = useState({
@@ -110,7 +109,7 @@ export default function InspectionPage() {
 
   useEffect(() => {
     if (!driver) {
-      navigate('/');
+      setLocation('/');
       return;
     }
     
@@ -203,7 +202,7 @@ export default function InspectionPage() {
       });
 
       if (response.ok) {
-        navigate('/dashboard');
+        setLocation('/dashboard');
       } else {
         console.error('Failed to submit inspection');
       }
@@ -246,11 +245,7 @@ export default function InspectionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Sidebar />
-      <div className="ml-64">
-        <Header driver={driver} status={driver.status} />
-        
-        <div className="p-6">
+      <div className="p-6">
           <div className="max-w-5xl mx-auto">
             {/* Header */}
             <div className="mb-6">
@@ -530,7 +525,6 @@ export default function InspectionPage() {
             </Card>
           </div>
         </div>
-      </div>
     </div>
   );
 }
