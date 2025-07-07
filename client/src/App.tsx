@@ -7,8 +7,9 @@ import { Sidebar } from "@/components/sidebar";
 import Dashboard from "@/pages/dashboard";
 import ExpensesReport from "@/pages/expenses-report";
 import Documents from "@/pages/documents";
-import Routes from "@/pages/routes";
 import InspectionPage from "@/pages/inspection";
+import InspectionHistoryPage from "@/pages/inspection-history";
+import Routes from "@/pages/routes";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -25,6 +26,7 @@ function Router() {
           <Route path="/documents" component={Documents} />
           <Route path="/routes" component={Routes} />
           <Route path="/inspection" component={InspectionPage} />
+          <Route path="/inspection-history" component={InspectionHistoryPage} />
           {/* Routes only for administrators */}
           {isAdmin && (
             <>
