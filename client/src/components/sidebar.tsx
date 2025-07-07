@@ -86,13 +86,13 @@ export function Sidebar() {
           </Button>
         </div>
       </div>
-      
+
       {/* Navigation Menu */}
       <nav className={cn("flex-1 overflow-y-auto", isCollapsed ? "px-2" : "px-3")}>
         <div className="py-4 space-y-2">
           {navigation.map((item) => {
             const isActive = location === item.href;
-            
+
             if (isCollapsed) {
               return (
                 <Tooltip key={item.name}>

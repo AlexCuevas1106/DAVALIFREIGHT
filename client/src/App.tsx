@@ -8,6 +8,7 @@ import Dashboard from "@/pages/dashboard";
 import ExpensesReport from "@/pages/expenses-report";
 import Documents from "@/pages/documents";
 import Routes from "@/pages/routes";
+import InspectionPage from "@/pages/inspection";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -23,6 +24,7 @@ function Router() {
           <Route path="/expenses-report" component={ExpensesReport} />
           <Route path="/documents" component={Documents} />
           <Route path="/routes" component={Routes} />
+          <Route path="/inspection" component={InspectionPage} />
           {/* Routes only for administrators */}
           {isAdmin && (
             <>
