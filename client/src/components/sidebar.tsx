@@ -13,7 +13,9 @@ import {
   FileText,
   Folder,
   Menu,
-  X
+  X,
+  ClipboardCheck,
+  History
 } from "lucide-react";
 
 // Navigation options are dynamically defined based on user role
@@ -29,6 +31,8 @@ export function Sidebar() {
     { name: "Expenses", href: "/expenses-report", icon: FileText },
     { name: "Documents", href: "/documents", icon: Folder },
     { name: "Routes", href: "/routes", icon: Route },
+    { name: "Inspection", href: "/inspection", icon: ClipboardCheck },
+    { name: "Inspection History", href: "/inspection-history", icon: History },
   ];
 
   // Full navigation for administrators
@@ -37,6 +41,8 @@ export function Sidebar() {
     { name: "Documents", href: "/documents", icon: Folder },
     { name: "Expenses", href: "/expenses-report", icon: FileText },
     { name: "Routes", href: "/routes", icon: Route },
+    { name: "Inspection", href: "/inspection", icon: ClipboardCheck },
+    { name: "Inspection History", href: "/inspection-history", icon: History },
     { name: "Vehicles", href: "/vehicles", icon: Truck },
     { name: "Drivers", href: "/drivers", icon: Users },
     { name: "Shipments", href: "/shipments", icon: Package },

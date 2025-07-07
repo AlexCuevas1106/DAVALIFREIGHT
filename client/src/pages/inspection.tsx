@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +41,7 @@ interface InspectionSection {
 export default function InspectionPage() {
   const { user: driver } = useAuth();
   const [location, setLocation] = useLocation();
-  
+
   const [inspectionType, setInspectionType] = useState<'pre_trip' | 'post_trip'>('pre_trip');
   const [vehicleInfo, setVehicleInfo] = useState({
     vehicleNumber: '',
@@ -53,7 +52,7 @@ export default function InspectionPage() {
     mileage: '',
     fuelLevel: ''
   });
-  
+
   const [generalNotes, setGeneralNotes] = useState('');
   const [defectsFound, setDefectsFound] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,14 +111,14 @@ export default function InspectionPage() {
       setLocation('/');
       return;
     }
-    
+
     // Load vehicle info if available
     fetchVehicleInfo();
   }, [driver, setLocation]);
 
   const fetchVehicleInfo = async () => {
     if (!driver?.currentVehicleId) return;
-    
+
     try {
       const response = await fetch(`/api/vehicles/${driver.currentVehicleId}`);
       if (response.ok) {
@@ -151,7 +150,7 @@ export default function InspectionPage() {
       }
       return section;
     }));
-    
+
     // Update defects found status
     const hasDefects = sections.some(section => 
       section.items.some(item => item.status === 'defective')
@@ -175,9 +174,9 @@ export default function InspectionPage() {
 
   const handleSubmit = async (status: 'completed' | 'pending') => {
     if (!driver) return;
-    
+
     setIsSubmitting(true);
-    
+
     try {
       const inspectionData = {
         driverId: driver.id,
@@ -379,7 +378,7 @@ export default function InspectionPage() {
                   </TabsTrigger>
                 ))}
               </TabsList>
-              
+
               {sections.map((section, sectionIndex) => (
                 <TabsContent key={sectionIndex} value={sectionIndex.toString()}>
                   <Card>
@@ -399,7 +398,7 @@ export default function InspectionPage() {
                                 {item.status.replace('_', ' ').toUpperCase()}
                               </Badge>
                             </div>
-                            
+
                             <div className="flex items-center space-x-4 mb-3">
                               <div className="flex items-center space-x-2">
                                 <Checkbox
@@ -426,7 +425,7 @@ export default function InspectionPage() {
                                 <Label htmlFor={`${item.id}-na`} className="text-gray-600">N/A</Label>
                               </div>
                             </div>
-                            
+
                             {item.status === 'defective' && (
                               <div className="mt-3">
                                 <Label>Defect Details</Label>

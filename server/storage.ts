@@ -39,18 +39,18 @@ export interface IStorage {
   getAllDrivers(): Promise<Driver[]>;
   createDriver(driver: InsertDriver): Promise<Driver>;
   updateDriver(id: number, updates: Partial<Driver>): Promise<Driver | undefined>;
-  
+
   // Vehicle operations
   getVehicle(id: number): Promise<Vehicle | undefined>;
   getAllVehicles(): Promise<Vehicle[]>;
   createVehicle(vehicle: InsertVehicle): Promise<Vehicle>;
   updateVehicle(id: number, updates: Partial<Vehicle>): Promise<Vehicle | undefined>;
-  
+
   // Trailer operations
   getTrailer(id: number): Promise<Trailer | undefined>;
   getAllTrailers(): Promise<Trailer[]>;
   createTrailer(trailer: InsertTrailer): Promise<Trailer>;
-  
+
   // Shipment operations
   getShipment(id: number): Promise<Shipment | undefined>;
   getShipmentByShippingId(shippingId: string): Promise<Shipment | undefined>;
@@ -58,30 +58,30 @@ export interface IStorage {
   getShipmentsByDriver(driverId: number): Promise<Shipment[]>;
   createShipment(shipment: InsertShipment): Promise<Shipment>;
   updateShipment(id: number, updates: Partial<Shipment>): Promise<Shipment | undefined>;
-  
+
   // Hours of Service operations
   getHoSByDriver(driverId: number): Promise<HoursOfService | undefined>;
   updateHoS(driverId: number, hos: Partial<HoursOfService>): Promise<HoursOfService>;
-  
+
   // Inspection operations
   getInspectionReports(driverId?: number): Promise<InspectionReport[]>;
   createInspectionReport(report: InsertInspectionReport): Promise<InspectionReport>;
   updateInspectionReport(id: number, updates: Partial<InspectionReport>): Promise<InspectionReport | undefined>;
-  
+
   // Document operations
   getDocuments(shipmentId?: number, driverId?: number): Promise<Document[]>;
   createDocument(document: InsertDocument): Promise<Document>;
-  
+
   // Activity log operations
   getActivityLogs(driverId: number, limit?: number): Promise<ActivityLog[]>;
   createActivityLog(log: InsertActivityLog): Promise<ActivityLog>;
-  
+
   // Document file operations
   getDocumentFiles(driverId?: number, fileType?: string): Promise<DocumentFile[]>;
   createDocumentFile(document: InsertDocumentFile): Promise<DocumentFile>;
   getDocumentFile(id: number): Promise<DocumentFile | undefined>;
   deleteDocumentFile(id: number): Promise<boolean>;
-  
+
   // Route operations
   getRoutes(driverId?: number): Promise<Route[]>;
   createRoute(route: InsertRoute): Promise<Route>;
@@ -113,6 +113,14 @@ export class DatabaseStorage implements IStorage {
       .values(insertDriver)
       .returning();
     return driver;
+  }
+
+  async getVehicles(): Promise<Vehicle[]> {
+    return await db.select().from(vehicles);
+  }
+
+  async getTrailers(): Promise<Trailer[]> {
+    return await db.select().from(trailers);
   }
 
   async updateDriver(id: number, updates: Partial<Driver>): Promise<Driver | undefined> {
@@ -210,7 +218,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateHoS(driverId: number, hosUpdates: Partial<HoursOfService>): Promise<HoursOfService> {
     const existing = await this.getHoSByDriver(driverId);
-    
+
     if (existing) {
       const [hos] = await db
         .update(hoursOfService)
@@ -270,7 +278,7 @@ export class DatabaseStorage implements IStorage {
       return await db.select().from(documents)
         .where(and(eq(documents.driverId, driverId), eq(documents.isActive, true)));
     }
-    
+
     return await db.select().from(documents).where(eq(documents.isActive, true));
   }
 
@@ -310,7 +318,7 @@ export class MemStorage implements IStorage {
   private activityLogs: Map<number, ActivityLog> = new Map();
   private documentFiles: Map<number, DocumentFile> = new Map();
   private routes: Map<number, Route> = new Map();
-  
+
   private currentDriverId = 1;
   private currentVehicleId = 1;
   private currentTrailerId = 1;
@@ -514,7 +522,7 @@ export class MemStorage implements IStorage {
   async updateDriver(id: number, updates: Partial<Driver>): Promise<Driver | undefined> {
     const driver = this.drivers.get(id);
     if (!driver) return undefined;
-    
+
     const updated = { ...driver, ...updates };
     this.drivers.set(id, updated);
     return updated;
@@ -546,7 +554,7 @@ export class MemStorage implements IStorage {
   async updateVehicle(id: number, updates: Partial<Vehicle>): Promise<Vehicle | undefined> {
     const vehicle = this.vehicles.get(id);
     if (!vehicle) return undefined;
-    
+
     const updated = { ...vehicle, ...updates };
     this.vehicles.set(id, updated);
     return updated;
@@ -607,7 +615,7 @@ export class MemStorage implements IStorage {
   async updateShipment(id: number, updates: Partial<Shipment>): Promise<Shipment | undefined> {
     const shipment = this.shipments.get(id);
     if (!shipment) return undefined;
-    
+
     const updated = { ...shipment, ...updates };
     this.shipments.set(id, updated);
     return updated;
@@ -656,7 +664,7 @@ export class MemStorage implements IStorage {
   async updateInspectionReport(id: number, updates: Partial<InspectionReport>): Promise<InspectionReport | undefined> {
     const report = this.inspectionReports.get(id);
     if (!report) return undefined;
-    
+
     const updated = { ...report, ...updates };
     this.inspectionReports.set(id, updated);
     return updated;
@@ -768,7 +776,7 @@ export class MemStorage implements IStorage {
   async updateRoute(id: number, updates: Partial<Route>): Promise<Route | undefined> {
     const route = this.routes.get(id);
     if (!route) return undefined;
-    
+
     const updatedRoute = { ...route, ...updates, updatedAt: new Date() };
     this.routes.set(id, updatedRoute);
     return updatedRoute;
