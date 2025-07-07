@@ -115,7 +115,7 @@ export default function InspectionPage() {
     
     // Load vehicle info if available
     fetchVehicleInfo();
-  }, [driver, navigate]);
+  }, [driver, setLocation]);
 
   const fetchVehicleInfo = async () => {
     if (!driver?.currentVehicleId) return;
