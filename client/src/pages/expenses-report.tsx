@@ -7,27 +7,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Plus, 
-  Trash2, 
-  Camera, 
-  FileText, 
+import {
+  Plus,
+  Trash2,
+  Camera,
+  FileText,
   Download,
   RotateCcw,
   Receipt,
-  DollarSign
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TripRecord {
   id: string;
   loadNumber: string;
-  emptyFrom: string;
-  emptyTo: string;
-  loadedFrom: string;
-  loadedTo: string;
+  From: string;
+  To: string;
   startOdometer: string;
   finishOdometer: string;
   totalMiles: string;
@@ -69,50 +73,63 @@ const EXPENSE_CATEGORIES = [
   "Permits",
   "Medical",
   "Safety Equipment",
-  "Other"
+  "Other",
 ];
 
 export default function ExpensesReport() {
   const [tripRecord, setTripRecord] = useState<TripRecord>({
-    id: '1',
-    loadNumber: '',
-    emptyFrom: '',
-    emptyTo: '',
-    loadedFrom: '',
-    loadedTo: '',
-    startOdometer: '',
-    finishOdometer: '',
-    totalMiles: ''
+    id: "1",
+    loadNumber: "",
+    From: "",
+    To: "",
+    startOdometer: "",
+    finishOdometer: "",
+    totalMiles: "",
   });
 
   const [fuelEntries, setFuelEntries] = useState<FuelEntry[]>([
-    { id: '1', date: '', city: '', state: '', gallons: 0, cost: 0, image: null }
+    {
+      id: "1",
+      date: "",
+      city: "",
+      state: "",
+      gallons: 0,
+      cost: 0,
+      image: null,
+    },
   ]);
 
   const [miscEntries, setMiscEntries] = useState<MiscellaneousEntry[]>([
-    { id: '1', description: '', amount: 0, category: '' }
+    { id: "1", description: "", amount: 0, category: "" },
   ]);
 
   const [mileageEntries, setMileageEntries] = useState<MileageEntry[]>([
-    { id: '1', state: '', odometerReading: '', highwaysTraveled: '', milesLoaded: '', milesEmpty: '' }
+    {
+      id: "1",
+      state: "",
+      odometerReading: "",
+      highwaysTraveled: "",
+      milesLoaded: "",
+      milesEmpty: "",
+    },
   ]);
 
   // Mock driver data
   const driver = {
     id: 1,
     name: "Skyler Droubay",
-    role: "driver"
+    role: "driver",
   };
 
   const addFuelEntry = () => {
     const newEntry: FuelEntry = {
       id: Date.now().toString(),
-      date: '',
-      city: '',
-      state: '',
+      date: "",
+      city: "",
+      state: "",
       gallons: 0,
       cost: 0,
-      image: null
+      image: null,
     };
     setFuelEntries([...fuelEntries, newEntry]);
   };
@@ -120,9 +137,9 @@ export default function ExpensesReport() {
   const addMiscEntry = () => {
     const newEntry: MiscellaneousEntry = {
       id: Date.now().toString(),
-      description: '',
+      description: "",
       amount: 0,
-      category: ''
+      category: "",
     };
     setMiscEntries([...miscEntries, newEntry]);
   };
@@ -130,61 +147,75 @@ export default function ExpensesReport() {
   const addMileageEntry = () => {
     const newEntry: MileageEntry = {
       id: Date.now().toString(),
-      state: '',
-      odometerReading: '',
-      highwaysTraveled: '',
-      milesLoaded: '',
-      milesEmpty: ''
+      state: "",
+      odometerReading: "",
+      highwaysTraveled: "",
+      milesLoaded: "",
+      milesEmpty: "",
     };
     setMileageEntries([...mileageEntries, newEntry]);
   };
 
   const updateFuelEntry = (id: string, field: keyof FuelEntry, value: any) => {
-    setFuelEntries(fuelEntries.map(entry => 
-      entry.id === id ? { ...entry, [field]: value } : entry
-    ));
+    setFuelEntries(
+      fuelEntries.map((entry) =>
+        entry.id === id ? { ...entry, [field]: value } : entry,
+      ),
+    );
   };
 
-  const updateMiscEntry = (id: string, field: keyof MiscellaneousEntry, value: any) => {
-    setMiscEntries(miscEntries.map(entry => 
-      entry.id === id ? { ...entry, [field]: value } : entry
-    ));
+  const updateMiscEntry = (
+    id: string,
+    field: keyof MiscellaneousEntry,
+    value: any,
+  ) => {
+    setMiscEntries(
+      miscEntries.map((entry) =>
+        entry.id === id ? { ...entry, [field]: value } : entry,
+      ),
+    );
   };
 
-  const updateMileageEntry = (id: string, field: keyof MileageEntry, value: any) => {
-    setMileageEntries(mileageEntries.map(entry => 
-      entry.id === id ? { ...entry, [field]: value } : entry
-    ));
+  const updateMileageEntry = (
+    id: string,
+    field: keyof MileageEntry,
+    value: any,
+  ) => {
+    setMileageEntries(
+      mileageEntries.map((entry) =>
+        entry.id === id ? { ...entry, [field]: value } : entry,
+      ),
+    );
   };
 
   const deleteFuelEntry = (id: string) => {
     if (fuelEntries.length > 1) {
-      setFuelEntries(fuelEntries.filter(entry => entry.id !== id));
+      setFuelEntries(fuelEntries.filter((entry) => entry.id !== id));
     }
   };
 
   const deleteMiscEntry = (id: string) => {
     if (miscEntries.length > 1) {
-      setMiscEntries(miscEntries.filter(entry => entry.id !== id));
+      setMiscEntries(miscEntries.filter((entry) => entry.id !== id));
     }
   };
 
   const deleteMileageEntry = (id: string) => {
     if (mileageEntries.length > 1) {
-      setMileageEntries(mileageEntries.filter(entry => entry.id !== id));
+      setMileageEntries(mileageEntries.filter((entry) => entry.id !== id));
     }
   };
 
   const handleImageUpload = (id: string, file: File) => {
-    updateFuelEntry(id, 'image', file);
+    updateFuelEntry(id, "image", file);
   };
 
   const updateTripRecord = (field: keyof TripRecord, value: string) => {
-    setTripRecord(prev => ({ ...prev, [field]: value }));
+    setTripRecord((prev) => ({ ...prev, [field]: value }));
   };
 
   const generatePDF = () => {
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
     const htmlContent = `
@@ -214,10 +245,9 @@ export default function ExpensesReport() {
             <h3>Trip Record</h3>
             <table>
               <tr><td><strong>Load Number:</strong></td><td>${tripRecord.loadNumber}</td></tr>
-              <tr><td><strong>Empty From:</strong></td><td>${tripRecord.emptyFrom}</td></tr>
-              <tr><td><strong>Empty To:</strong></td><td>${tripRecord.emptyTo}</td></tr>
-              <tr><td><strong>Loaded From:</strong></td><td>${tripRecord.loadedFrom}</td></tr>
-              <tr><td><strong>Loaded To:</strong></td><td>${tripRecord.loadedTo}</td></tr>
+              <tr><td><strong>Empty From:</strong></td><td>${tripRecord.From}</td></tr>
+              <tr><td><strong>Empty To:</strong></td><td>${tripRecord.To}</td></tr>
+              </tr>
               <tr><td><strong>Start Odometer:</strong></td><td>${tripRecord.startOdometer}</td></tr>
               <tr><td><strong>Finish Odometer:</strong></td><td>${tripRecord.finishOdometer}</td></tr>
               <tr><td><strong>Total Miles:</strong></td><td>${tripRecord.totalMiles}</td></tr>
@@ -228,7 +258,9 @@ export default function ExpensesReport() {
             <h3>Fuel Expenses</h3>
             <table>
               <tr><th>Date</th><th>City</th><th>State</th><th>Gallons</th><th>Cost</th></tr>
-              ${fuelEntries.map(entry => `
+              ${fuelEntries
+                .map(
+                  (entry) => `
                 <tr>
                   <td>${entry.date}</td>
                   <td>${entry.city}</td>
@@ -236,7 +268,9 @@ export default function ExpensesReport() {
                   <td>${entry.gallons}</td>
                   <td>$${entry.cost.toFixed(2)}</td>
                 </tr>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </table>
             <div class="summary">
               <strong>Total Fuel Cost: $${fuelEntries.reduce((sum, entry) => sum + entry.cost, 0).toFixed(2)}</strong>
@@ -247,13 +281,17 @@ export default function ExpensesReport() {
             <h3>Miscellaneous Expenses</h3>
             <table>
               <tr><th>Description</th><th>Category</th><th>Amount</th></tr>
-              ${miscEntries.map(entry => `
+              ${miscEntries
+                .map(
+                  (entry) => `
                 <tr>
                   <td>${entry.description}</td>
                   <td>${entry.category}</td>
                   <td>$${entry.amount.toFixed(2)}</td>
                 </tr>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </table>
             <div class="summary">
               <strong>Total Misc Expenses: $${miscEntries.reduce((sum, entry) => sum + entry.amount, 0).toFixed(2)}</strong>
@@ -264,7 +302,9 @@ export default function ExpensesReport() {
             <h3>Mileage Log</h3>
             <table>
               <tr><th>State</th><th>Odometer Reading</th><th>Highways Traveled</th><th>Miles Loaded</th><th>Miles Empty</th></tr>
-              ${mileageEntries.map(entry => `
+              ${mileageEntries
+                .map(
+                  (entry) => `
                 <tr>
                   <td>${entry.state}</td>
                   <td>${entry.odometerReading}</td>
@@ -272,7 +312,9 @@ export default function ExpensesReport() {
                   <td>${entry.milesLoaded}</td>
                   <td>${entry.milesEmpty}</td>
                 </tr>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </table>
           </div>
 
@@ -295,41 +337,65 @@ export default function ExpensesReport() {
   const createNewReport = () => {
     setTripRecord({
       id: Date.now().toString(),
-      loadNumber: '',
-      emptyFrom: '',
-      emptyTo: '',
-      loadedFrom: '',
-      loadedTo: '',
-      startOdometer: '',
-      finishOdometer: '',
-      totalMiles: ''
+      loadNumber: "",
+      From: "",
+      To: "",
+      startOdometer: "",
+      finishOdometer: "",
+      totalMiles: "",
     });
-    setFuelEntries([{ id: '1', date: '', city: '', state: '', gallons: 0, cost: 0, image: null }]);
-    setMiscEntries([{ id: '1', description: '', amount: 0, category: '' }]);
-    setMileageEntries([{ id: '1', state: '', odometerReading: '', highwaysTraveled: '', milesLoaded: '', milesEmpty: '' }]);
+    setFuelEntries([
+      {
+        id: "1",
+        date: "",
+        city: "",
+        state: "",
+        gallons: 0,
+        cost: 0,
+        image: null,
+      },
+    ]);
+    setMiscEntries([{ id: "1", description: "", amount: 0, category: "" }]);
+    setMileageEntries([
+      {
+        id: "1",
+        state: "",
+        odometerReading: "",
+        highwaysTraveled: "",
+        milesLoaded: "",
+        milesEmpty: "",
+      },
+    ]);
   };
 
   const totalFuelCost = fuelEntries.reduce((sum, entry) => sum + entry.cost, 0);
-  const totalMiscCost = miscEntries.reduce((sum, entry) => sum + entry.amount, 0);
-  const totalGallons = fuelEntries.reduce((sum, entry) => sum + entry.gallons, 0);
+  const totalMiscCost = miscEntries.reduce(
+    (sum, entry) => sum + entry.amount,
+    0,
+  );
+  const totalGallons = fuelEntries.reduce(
+    (sum, entry) => sum + entry.gallons,
+    0,
+  );
 
   return (
     <>
       <Sidebar />
       <div className="ml-64">
-        <Header 
-          driver={driver}
-          status="on_duty"
-        />
-        
+        <Header driver={driver} status="on_duty" />
+
         <div className="p-6 max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Expense Report</h1>
-              <p className="text-gray-600 mt-1">Manage your trip expenses and mileage log</p>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Expense Report
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Manage your trip expenses and mileage log
+              </p>
             </div>
             <div className="flex space-x-3">
-              <Button 
+              <Button
                 onClick={createNewReport}
                 variant="outline"
                 className="flex items-center space-x-2"
@@ -337,7 +403,7 @@ export default function ExpensesReport() {
                 <RotateCcw className="w-4 h-4" />
                 <span>New Report</span>
               </Button>
-              <Button 
+              <Button
                 onClick={generatePDF}
                 className="flex items-center space-x-2"
               >
@@ -363,7 +429,9 @@ export default function ExpensesReport() {
                       <Label className="text-xs">Load Number</Label>
                       <Input
                         value={tripRecord.loadNumber}
-                        onChange={(e) => updateTripRecord('loadNumber', e.target.value)}
+                        onChange={(e) =>
+                          updateTripRecord("loadNumber", e.target.value)
+                        }
                         placeholder="Load number"
                         className="text-sm"
                       />
@@ -371,8 +439,10 @@ export default function ExpensesReport() {
                     <div>
                       <Label className="text-xs">Empty From</Label>
                       <Input
-                        value={tripRecord.emptyFrom}
-                        onChange={(e) => updateTripRecord('emptyFrom', e.target.value)}
+                        value={tripRecord.From}
+                        onChange={(e) =>
+                          updateTripRecord("From", e.target.value)
+                        }
                         placeholder="Origin city"
                         className="text-sm"
                       />
@@ -380,27 +450,9 @@ export default function ExpensesReport() {
                     <div>
                       <Label className="text-xs">Empty To</Label>
                       <Input
-                        value={tripRecord.emptyTo}
-                        onChange={(e) => updateTripRecord('emptyTo', e.target.value)}
+                        value={tripRecord.To}
+                        onChange={(e) => updateTripRecord("To", e.target.value)}
                         placeholder="Pickup city"
-                        className="text-sm"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Loaded From</Label>
-                      <Input
-                        value={tripRecord.loadedFrom}
-                        onChange={(e) => updateTripRecord('loadedFrom', e.target.value)}
-                        placeholder="Pickup city"
-                        className="text-sm"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Loaded To</Label>
-                      <Input
-                        value={tripRecord.loadedTo}
-                        onChange={(e) => updateTripRecord('loadedTo', e.target.value)}
-                        placeholder="Delivery city"
                         className="text-sm"
                       />
                     </div>
@@ -409,7 +461,9 @@ export default function ExpensesReport() {
                       <Input
                         type="number"
                         value={tripRecord.startOdometer}
-                        onChange={(e) => updateTripRecord('startOdometer', e.target.value)}
+                        onChange={(e) =>
+                          updateTripRecord("startOdometer", e.target.value)
+                        }
                         placeholder="Starting miles"
                         className="text-sm"
                       />
@@ -419,7 +473,9 @@ export default function ExpensesReport() {
                       <Input
                         type="number"
                         value={tripRecord.finishOdometer}
-                        onChange={(e) => updateTripRecord('finishOdometer', e.target.value)}
+                        onChange={(e) =>
+                          updateTripRecord("finishOdometer", e.target.value)
+                        }
                         placeholder="Ending miles"
                         className="text-sm"
                       />
@@ -429,7 +485,9 @@ export default function ExpensesReport() {
                       <Input
                         type="number"
                         value={tripRecord.totalMiles}
-                        onChange={(e) => updateTripRecord('totalMiles', e.target.value)}
+                        onChange={(e) =>
+                          updateTripRecord("totalMiles", e.target.value)
+                        }
                         placeholder="Total trip miles"
                         className="text-sm"
                       />
@@ -451,7 +509,8 @@ export default function ExpensesReport() {
                     </div>
                     <div className="flex items-center space-x-4">
                       <Badge variant="outline" className="text-sm">
-                        {totalGallons.toFixed(2)} gal | ${totalFuelCost.toFixed(2)}
+                        {totalGallons.toFixed(2)} gal | $
+                        {totalFuelCost.toFixed(2)}
                       </Badge>
                       <Button
                         onClick={addFuelEntry}
@@ -467,9 +526,14 @@ export default function ExpensesReport() {
                 <CardContent>
                   <div className="space-y-4">
                     {fuelEntries.map((entry) => (
-                      <div key={entry.id} className="border rounded-lg p-4 space-y-3">
+                      <div
+                        key={entry.id}
+                        className="border rounded-lg p-4 space-y-3"
+                      >
                         <div className="flex justify-between items-center">
-                          <h4 className="font-medium">Fuel Entry #{entry.id}</h4>
+                          <h4 className="font-medium">
+                            Fuel Entry #{entry.id}
+                          </h4>
                           {fuelEntries.length > 1 && (
                             <Button
                               variant="outline"
@@ -487,7 +551,13 @@ export default function ExpensesReport() {
                             <Input
                               type="date"
                               value={entry.date}
-                              onChange={(e) => updateFuelEntry(entry.id, 'date', e.target.value)}
+                              onChange={(e) =>
+                                updateFuelEntry(
+                                  entry.id,
+                                  "date",
+                                  e.target.value,
+                                )
+                              }
                               className="text-sm"
                             />
                           </div>
@@ -495,7 +565,13 @@ export default function ExpensesReport() {
                             <Label className="text-xs">City</Label>
                             <Input
                               value={entry.city}
-                              onChange={(e) => updateFuelEntry(entry.id, 'city', e.target.value)}
+                              onChange={(e) =>
+                                updateFuelEntry(
+                                  entry.id,
+                                  "city",
+                                  e.target.value,
+                                )
+                              }
                               placeholder="City"
                               className="text-sm"
                             />
@@ -504,7 +580,13 @@ export default function ExpensesReport() {
                             <Label className="text-xs">State</Label>
                             <Input
                               value={entry.state}
-                              onChange={(e) => updateFuelEntry(entry.id, 'state', e.target.value)}
+                              onChange={(e) =>
+                                updateFuelEntry(
+                                  entry.id,
+                                  "state",
+                                  e.target.value,
+                                )
+                              }
                               placeholder="State"
                               className="text-sm"
                             />
@@ -514,7 +596,13 @@ export default function ExpensesReport() {
                             <Input
                               type="number"
                               value={entry.gallons}
-                              onChange={(e) => updateFuelEntry(entry.id, 'gallons', parseFloat(e.target.value) || 0)}
+                              onChange={(e) =>
+                                updateFuelEntry(
+                                  entry.id,
+                                  "gallons",
+                                  parseFloat(e.target.value) || 0,
+                                )
+                              }
                               placeholder="0"
                               className="text-sm"
                             />
@@ -524,7 +612,13 @@ export default function ExpensesReport() {
                             <Input
                               type="number"
                               value={entry.cost}
-                              onChange={(e) => updateFuelEntry(entry.id, 'cost', parseFloat(e.target.value) || 0)}
+                              onChange={(e) =>
+                                updateFuelEntry(
+                                  entry.id,
+                                  "cost",
+                                  parseFloat(e.target.value) || 0,
+                                )
+                              }
                               placeholder="0.00"
                               className="text-sm"
                             />
@@ -579,9 +673,14 @@ export default function ExpensesReport() {
                 <CardContent>
                   <div className="space-y-4">
                     {miscEntries.map((entry, index) => (
-                      <div key={entry.id} className="border rounded-lg p-4 space-y-3">
+                      <div
+                        key={entry.id}
+                        className="border rounded-lg p-4 space-y-3"
+                      >
                         <div className="flex justify-between items-center">
-                          <h4 className="font-medium">Misc Entry #{index + 1}</h4>
+                          <h4 className="font-medium">
+                            Misc Entry #{index + 1}
+                          </h4>
                           {miscEntries.length > 1 && (
                             <Button
                               variant="outline"
@@ -598,7 +697,13 @@ export default function ExpensesReport() {
                             <Label className="text-xs">Description</Label>
                             <Textarea
                               value={entry.description}
-                              onChange={(e) => updateMiscEntry(entry.id, 'description', e.target.value)}
+                              onChange={(e) =>
+                                updateMiscEntry(
+                                  entry.id,
+                                  "description",
+                                  e.target.value,
+                                )
+                              }
                               placeholder="Describe the expense"
                               rows={2}
                               className="text-sm"
@@ -608,7 +713,9 @@ export default function ExpensesReport() {
                             <Label className="text-xs">Category</Label>
                             <Select
                               value={entry.category}
-                              onValueChange={(value) => updateMiscEntry(entry.id, 'category', value)}
+                              onValueChange={(value) =>
+                                updateMiscEntry(entry.id, "category", value)
+                              }
                             >
                               <SelectTrigger className="text-sm">
                                 <SelectValue placeholder="Select category" />
@@ -627,8 +734,14 @@ export default function ExpensesReport() {
                             <Input
                               type="number"
                               step="0.01"
-                              value={entry.amount || ''}
-                              onChange={(e) => updateMiscEntry(entry.id, 'amount', parseFloat(e.target.value) || 0)}
+                              value={entry.amount || ""}
+                              onChange={(e) =>
+                                updateMiscEntry(
+                                  entry.id,
+                                  "amount",
+                                  parseFloat(e.target.value) || 0,
+                                )
+                              }
                               placeholder="0.00"
                               className="text-sm"
                             />
@@ -661,9 +774,14 @@ export default function ExpensesReport() {
                 <CardContent>
                   <div className="space-y-4">
                     {mileageEntries.map((entry) => (
-                      <div key={entry.id} className="border rounded-lg p-4 space-y-3">
+                      <div
+                        key={entry.id}
+                        className="border rounded-lg p-4 space-y-3"
+                      >
                         <div className="flex justify-between items-center">
-                          <h4 className="font-medium">Mileage Entry #{entry.id}</h4>
+                          <h4 className="font-medium">
+                            Mileage Entry #{entry.id}
+                          </h4>
                           {mileageEntries.length > 1 && (
                             <Button
                               variant="outline"
@@ -680,7 +798,13 @@ export default function ExpensesReport() {
                             <Label className="text-xs">State</Label>
                             <Input
                               value={entry.state}
-                              onChange={(e) => updateMileageEntry(entry.id, 'state', e.target.value)}
+                              onChange={(e) =>
+                                updateMileageEntry(
+                                  entry.id,
+                                  "state",
+                                  e.target.value,
+                                )
+                              }
                               placeholder="State"
                               className="text-sm"
                             />
@@ -690,7 +814,13 @@ export default function ExpensesReport() {
                             <Input
                               type="number"
                               value={entry.odometerReading}
-                              onChange={(e) => updateMileageEntry(entry.id, 'odometerReading', e.target.value)}
+                              onChange={(e) =>
+                                updateMileageEntry(
+                                  entry.id,
+                                  "odometerReading",
+                                  e.target.value,
+                                )
+                              }
                               placeholder="0"
                               className="text-sm"
                             />
@@ -699,7 +829,13 @@ export default function ExpensesReport() {
                             <Label className="text-xs">Highways Traveled</Label>
                             <Input
                               value={entry.highwaysTraveled}
-                              onChange={(e) => updateMileageEntry(entry.id, 'highwaysTraveled', e.target.value)}
+                              onChange={(e) =>
+                                updateMileageEntry(
+                                  entry.id,
+                                  "highwaysTraveled",
+                                  e.target.value,
+                                )
+                              }
                               placeholder="I-80, I-25"
                               className="text-sm"
                             />
@@ -709,7 +845,13 @@ export default function ExpensesReport() {
                             <Input
                               type="number"
                               value={entry.milesLoaded}
-                              onChange={(e) => updateMileageEntry(entry.id, 'milesLoaded', e.target.value)}
+                              onChange={(e) =>
+                                updateMileageEntry(
+                                  entry.id,
+                                  "milesLoaded",
+                                  e.target.value,
+                                )
+                              }
                               placeholder="0"
                               className="text-sm"
                             />
@@ -719,7 +861,13 @@ export default function ExpensesReport() {
                             <Input
                               type="number"
                               value={entry.milesEmpty}
-                              onChange={(e) => updateMileageEntry(entry.id, 'milesEmpty', e.target.value)}
+                              onChange={(e) =>
+                                updateMileageEntry(
+                                  entry.id,
+                                  "milesEmpty",
+                                  e.target.value,
+                                )
+                              }
                               placeholder="0"
                               className="text-sm"
                             />
