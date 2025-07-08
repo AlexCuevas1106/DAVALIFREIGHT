@@ -88,6 +88,10 @@ export interface IStorage {
   getRoute(id: number): Promise<Route | undefined>;
   updateRoute(id: number, updates: Partial<Route>): Promise<Route | undefined>;
   deleteRoute(id: number): Promise<boolean>;
+
+  // Expense Report operations
+  createExpenseReport(reportData: any): Promise<any>;
+  getExpenseReports(driverId?: number): Promise<any[]>;
 }
 
 
@@ -244,10 +248,50 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getInspectionReports(driverId?: number): Promise<InspectionReport[]> {
-    if (driverId) {
-      return await db.select().from(inspectionReports).where(eq(inspectionReports.driverId, driverId));
-    }
-    return await db.select().from(inspectionReports);
+    const inspections = await db.select().from(inspectionReports)
+      .where(driverId ? eq(inspectionReports.driverId, driverId) : undefined)
+      .orderBy(desc(inspectionReports.createdAt));
+
+    return inspections.map(inspection => ({
+      ...inspection,
+      inspectionData: inspection.inspectionData ? JSON.parse(inspection.inspectionData) : null
+    }));
+  }
+
+  async createExpenseReport(reportData: any): Promise<any> {
+    const report = {
+      id: Date.now(),
+      driverId: reportData.driverId || 1,
+      tripRecord: JSON.stringify(reportData.tripRecord),
+      fuelEntries: JSON.stringify(reportData.fuelEntries),
+      miscEntries: JSON.stringify(reportData.miscEntries),
+      mileageEntries: JSON.stringify(reportData.mileageEntries),
+      createdAt: new Date().toISOString(),
+    };
+
+    // Store in documents table as a PDF report
+    const document = await this.createDocument({
+      filename: `expense-report-${report.id}.json`,
+      content: JSON.stringify(report),
+      contentType: 'application/json',
+      category: 'expense_report',
+      driverId: report.driverId
+    });
+
+    return { ...report, documentId: document.id };
+  }
+
+  async getExpenseReports(driverId?: number): Promise<any[]> {
+    const documents = await this.getDocuments(undefined, driverId);
+    const expenseReports = documents.filter(doc => doc.category === 'expense_report');
+
+    return expenseReports.map(doc => {
+      try {
+        return JSON.parse(doc.content);
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
   }
 
   async createInspectionReport(insertReport: InsertInspectionReport): Promise<InspectionReport> {
@@ -784,6 +828,44 @@ export class MemStorage implements IStorage {
 
   async deleteRoute(id: number): Promise<boolean> {
     return this.routes.delete(id);
+  }
+
+  async createExpenseReport(reportData: any): Promise<any> {
+    const report = {
+      id: Date.now(),
+      driverId: reportData.driverId || 1,
+      tripRecord: JSON.stringify(reportData.tripRecord),
+      fuelEntries: JSON.stringify(reportData.fuelEntries),
+      miscEntries: JSON.stringify(reportData.miscEntries),
+      mileageEntries: JSON.stringify(reportData.mileageEntries),
+      createdAt: new Date().toISOString(),
+    };
+
+    // Store in documents table as a PDF report
+    const document = await this.createDocument({
+      name: `expense-report-${report.id}.json`,
+      type: 'expense_report',
+      shipmentId: null,
+      driverId: report.driverId,
+      filePath: null,
+      uploadedAt: new Date(),
+      isActive: true,
+    });
+
+    return { ...report, documentId: document.id };
+  }
+
+  async getExpenseReports(driverId?: number): Promise<any[]> {
+    const documents = await this.getDocuments(undefined, driverId);
+    const expenseReports = documents.filter(doc => doc.type === 'expense_report');
+
+    return expenseReports.map(doc => {
+      try {
+        return JSON.parse(doc.content);
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
   }
 }
 

@@ -286,6 +286,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Expense reports routes
+  app.post("/api/expense-reports", async (req, res) => {
+    try {
+      const expenseReport = req.body;
+      // Store expense report in storage
+      const savedReport = await storage.createExpenseReport(expenseReport);
+      res.status(201).json(savedReport);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create expense report" });
+    }
+  });
+
+  app.get("/api/expense-reports", async (req, res) => {
+    try {
+      const driverId = req.query.driverId ? parseInt(req.query.driverId as string) : undefined;
+      const reports = await storage.getExpenseReports(driverId);
+      res.json(reports);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch expense reports" });
+    }
+  });
+
   // Inspection routes
   app.get("/api/inspections", async (req, res) => {
     try {

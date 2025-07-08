@@ -595,7 +595,7 @@ export default function ExpensesReport() {
                             <Label className="text-xs">Gallons</Label>
                             <Input
                               type="number"
-                              value={entry.gallons}
+                              value={entry.gallons || ""}
                               onChange={(e) =>
                                 updateFuelEntry(
                                   entry.id,
@@ -611,7 +611,7 @@ export default function ExpensesReport() {
                             <Label className="text-xs">Cost ($)</Label>
                             <Input
                               type="number"
-                              value={entry.cost}
+                              value={entry.cost || ""}
                               onChange={(e) =>
                                 updateFuelEntry(
                                   entry.id,
