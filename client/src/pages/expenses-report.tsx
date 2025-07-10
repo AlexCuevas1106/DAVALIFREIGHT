@@ -7,13 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { Separator } from "@/components/ui/separator";
 import {
   Plus,
@@ -63,18 +57,7 @@ interface MileageEntry {
   milesEmpty: string;
 }
 
-const EXPENSE_CATEGORIES = [
-  "Tolls",
-  "Parking",
-  "Meals",
-  "Lodging",
-  "Maintenance",
-  "Communication",
-  "Permits",
-  "Medical",
-  "Safety Equipment",
-  "Other",
-];
+
 
 export default function ExpensesReport() {
   const [tripRecord, setTripRecord] = useState<TripRecord>({
@@ -245,8 +228,8 @@ export default function ExpensesReport() {
             <h3>Trip Record</h3>
             <table>
               <tr><td><strong>Load Number:</strong></td><td>${tripRecord.loadNumber}</td></tr>
-              <tr><td><strong>Empty From:</strong></td><td>${tripRecord.From}</td></tr>
-              <tr><td><strong>Empty To:</strong></td><td>${tripRecord.To}</td></tr>
+              <tr><td><strong>From:</strong></td><td>${tripRecord.From}</td></tr>
+              <tr><td><strong>To:</strong></td><td>${tripRecord.To}</td></tr>
               </tr>
               <tr><td><strong>Start Odometer:</strong></td><td>${tripRecord.startOdometer}</td></tr>
               <tr><td><strong>Finish Odometer:</strong></td><td>${tripRecord.finishOdometer}</td></tr>
@@ -437,7 +420,7 @@ export default function ExpensesReport() {
                       />
                     </div>
                     <div>
-                      <Label className="text-xs">Empty From</Label>
+                      <Label className="text-xs">From</Label>
                       <Input
                         value={tripRecord.From}
                         onChange={(e) =>
@@ -448,7 +431,7 @@ export default function ExpensesReport() {
                       />
                     </div>
                     <div>
-                      <Label className="text-xs">Empty To</Label>
+                      <Label className="text-xs">To</Label>
                       <Input
                         value={tripRecord.To}
                         onChange={(e) => updateTripRecord("To", e.target.value)}
@@ -711,23 +694,14 @@ export default function ExpensesReport() {
                           </div>
                           <div>
                             <Label className="text-xs">Category</Label>
-                            <Select
+                            <Input
                               value={entry.category}
-                              onValueChange={(value) =>
-                                updateMiscEntry(entry.id, "category", value)
+                              onChange={(e) =>
+                                updateMiscEntry(entry.id, "category", e.target.value)
                               }
-                            >
-                              <SelectTrigger className="text-sm">
-                                <SelectValue placeholder="Select category" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {EXPENSE_CATEGORIES.map((category) => (
-                                  <SelectItem key={category} value={category}>
-                                    {category}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              placeholder="Enter category"
+                              className="text-sm"
+                            />
                           </div>
                           <div>
                             <Label className="text-xs">Amount ($)</Label>
