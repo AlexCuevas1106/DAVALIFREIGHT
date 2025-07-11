@@ -15,7 +15,9 @@ import {
   Menu,
   X,
   ClipboardCheck,
-  History
+  History,
+  User,
+  LogOut
 } from "lucide-react";
 
 // Navigation options are dynamically defined based on user role
@@ -23,7 +25,7 @@ import {
 export function Sidebar() {
   const [location] = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, logout, isLoggingOut } = useAuth();
 
   // Navigation for regular users (drivers - limited access)
   const driverNavigation = [
@@ -143,47 +145,69 @@ export function Sidebar() {
         </div>
       </nav>
 
-      {/* User Info Footer */}
-      {!isCollapsed && user && (
-        <div className="flex-shrink-0 border-t border-gray-200 p-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-medium">
-                {user.name?.charAt(0) || 'U'}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {user.name}
-              </p>
-              <p className="text-xs text-gray-500">
-                {isAdmin ? "Administrator" : "Driver"}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Collapsed User Info */}
-      {isCollapsed && user && (
-        <div className="flex-shrink-0 border-t border-gray-200 p-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center mx-auto cursor-pointer">
-                <span className="text-white text-sm font-medium">
-                  {user.name?.charAt(0) || 'U'}
-                </span>
+        {/* User section at bottom */}
+        <div className="mt-auto p-4 border-t">
+          {!isCollapsed ? (
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-100 rounded-full">
+                  <User className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {user?.name}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {user?.role === 'admin' ? 'Administrador' : 'Chofer'}
+                  </p>
+                </div>
               </div>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="ml-2">
-              <div>
-                <p className="font-medium">{user.name}</p>
-                <p className="text-xs text-gray-400">{isAdmin ? "Administrator" : "Driver"}</p>
-              </div>
-            </TooltipContent>
-          </Tooltip>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={logout}
+                disabled={isLoggingOut}
+                className="w-full justify-start"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                {isLoggingOut ? "Cerrando..." : "Cerrar Sesión"}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="p-2 bg-blue-100 rounded-full w-fit mx-auto">
+                    <User className="h-4 w-4 text-blue-600" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>{user?.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {user?.role === 'admin' ? 'Administrador' : 'Chofer'}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={logout}
+                    disabled={isLoggingOut}
+                    className="w-full"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Cerrar Sesión</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          )}
         </div>
-      )}
-    </aside>
+      </div>
+    </div>
   );
 }

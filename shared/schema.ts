@@ -5,16 +5,18 @@ import { z } from "zod";
 export const drivers = pgTable("drivers", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
+  password: text("password").notNull(),
   name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone").notNull(),
-  licenseNumber: text("license_number").notNull(),
-  role: text("role").notNull().default("driver"),
+  licenseNumber: text("license_number"),
+  role: text("role").notNull().default("driver"), // "admin" or "driver"
   status: text("status").notNull().default("off_duty"), // off_duty, on_duty, driving, sleeper
   dutyStartTime: timestamp("duty_start_time"),
   currentVehicleId: integer("current_vehicle_id"),
   currentTrailerId: integer("current_trailer_id"),
   isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const vehicles = pgTable("vehicles", {
@@ -142,6 +144,24 @@ export const insertDriverSchema = createInsertSchema(drivers).omit({
   id: true,
   dutyStartTime: true,
   isActive: true,
+  createdAt: true,
+});
+
+// Login schema
+export const loginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
+// Registration schema
+export const registerSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email format"),
+  phone: z.string().min(1, "Phone is required"),
+  role: z.enum(["admin", "driver"]).default("driver"),
+  licenseNumber: z.string().optional(),
 });
 
 export const insertVehicleSchema = createInsertSchema(vehicles).omit({
@@ -218,3 +238,5 @@ export type DocumentFile = typeof documentFiles.$inferSelect;
 export type InsertDocumentFile = z.infer<typeof insertDocumentFileSchema>;
 export type Route = typeof routes.$inferSelect;
 export type InsertRoute = z.infer<typeof insertRouteSchema>;
+export type LoginRequest = z.infer<typeof loginSchema>;
+export type RegisterRequest = z.infer<typeof registerSchema>;

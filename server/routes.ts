@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
@@ -11,16 +11,92 @@ import {
   insertDocumentSchema,
   insertActivityLogSchema,
   insertRouteSchema,
+  loginSchema,
+  registerSchema,
 } from "@shared/schema";
+
+// Middleware to check if user is authenticated
+const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+  
+  const user = await storage.getUserById(req.session.userId);
+  if (!user) {
+    return res.status(401).json({ message: "User not found" });
+  }
+  
+  (req as any).user = user;
+  next();
+};
+
+// Middleware to check if user is admin
+const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  const user = (req as any).user;
+  if (!user || user.role !== 'admin') {
+    return res.status(403).json({ message: "Admin access required" });
+  }
+  next();
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
   // Auth endpoints
-  app.get('/api/auth/user', async (req, res) => {
+  app.post('/api/auth/login', async (req, res) => {
     try {
-      // Simulamos que siempre devolvemos el primer usuario como logueado
-      const user = await storage.getDriver(1);
+      const validatedData = loginSchema.parse(req.body);
+      const user = await storage.authenticateUser(validatedData.username, validatedData.password);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      req.session.userId = user.id;
+      res.json({ user, message: "Login successful" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.post('/api/auth/register', async (req, res) => {
+    try {
+      const validatedData = registerSchema.parse(req.body);
+      
+      // Check if username already exists
+      const existingUser = await storage.getDriverByUsername(validatedData.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      const user = await storage.registerUser(validatedData);
+      req.session.userId = user.id;
+      res.status(201).json({ user, message: "Registration successful" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Could not log out" });
+      }
+      res.json({ message: "Logout successful" });
+    });
+  });
+
+  app.get('/api/auth/user', requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -29,13 +105,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Document management endpoints
-  app.get("/api/documents", async (req, res) => {
+  app.get("/api/documents", requireAuth, async (req, res) => {
     try {
+      const user = (req as any).user;
       const { driverId, fileType } = req.query;
-      const documents = await storage.getDocumentFiles(
-        driverId ? parseInt(driverId as string) : undefined,
-        fileType as string
-      );
+      
+      let targetDriverId: number | undefined;
+      
+      if (user.role === 'admin') {
+        // Admin can see all documents or filter by driverId
+        targetDriverId = driverId ? parseInt(driverId as string) : undefined;
+      } else {
+        // Drivers can only see their own documents
+        targetDriverId = user.id;
+      }
+      
+      const documents = await storage.getDocumentFiles(targetDriverId, fileType as string);
       res.json(documents);
     } catch (error) {
       console.error("Error fetching documents:", error);
@@ -43,7 +128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/documents/upload", async (req, res) => {
+  app.post("/api/documents/upload", requireAuth, async (req, res) => {
     try {
       const { fileName, fileType, driverId, vehicleId, fileData, fileSize, originalName } = req.body;
 
@@ -65,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/documents/:id/download", async (req, res) => {
+  app.get("/api/documents/:id/download", requireAuth, async (req, res) => {
     try {
       const document = await storage.getDocumentFile(parseInt(req.params.id));
       if (!document) {
@@ -86,7 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/documents/:id", async (req, res) => {
+  app.delete("/api/documents/:id", requireAuth, async (req, res) => {
     try {
       const success = await storage.deleteDocumentFile(parseInt(req.params.id));
       if (success) {
@@ -100,8 +185,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Driver routes
-  app.get("/api/drivers", async (req, res) => {
+  // Driver routes  
+  app.get("/api/drivers", requireAuth, requireAdmin, async (req, res) => {
     try {
       const drivers = await storage.getAllDrivers();
       res.json(drivers);
@@ -110,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/drivers/:id", async (req, res) => {
+  app.get("/api/drivers/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const driver = await storage.getDriver(id);
@@ -123,7 +208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/drivers", async (req, res) => {
+  app.post("/api/drivers", requireAuth, requireAdmin, async (req, res) => {
     try {
       const validatedData = insertDriverSchema.parse(req.body);
       const driver = await storage.createDriver(validatedData);
@@ -136,7 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/drivers/:id", async (req, res) => {
+  app.patch("/api/drivers/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const driver = await storage.updateDriver(id, req.body);
@@ -150,7 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Vehicle routes
-  app.get("/api/vehicles", async (req, res) => {
+  app.get("/api/vehicles", requireAuth, async (req, res) => {
     try {
       const vehicles = await storage.getAllVehicles();
       res.json(vehicles);
@@ -159,7 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/vehicles/:id", async (req, res) => {
+  app.get("/api/vehicles/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const vehicle = await storage.getVehicle(id);
@@ -172,7 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/vehicles", async (req, res) => {
+  app.post("/api/vehicles", requireAuth, requireAdmin, async (req, res) => {
     try {
       const validatedData = insertVehicleSchema.parse(req.body);
       const vehicle = await storage.createVehicle(validatedData);
@@ -186,7 +271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Trailer routes
-  app.get("/api/trailers", async (req, res) => {
+  app.get("/api/trailers", requireAuth, async (req, res) => {
     try {
       const trailers = await storage.getAllTrailers();
       res.json(trailers);
@@ -195,7 +280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/trailers/:id", async (req, res) => {
+  app.get("/api/trailers/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const trailer = await storage.getTrailer(id);
@@ -208,7 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/trailers", async (req, res) => {
+  app.post("/api/trailers", requireAuth, requireAdmin, async (req, res) => {
     try {
       const validatedData = insertTrailerSchema.parse(req.body);
       const trailer = await storage.createTrailer(validatedData);
@@ -222,7 +307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Shipment routes
-  app.get("/api/shipments", async (req, res) => {
+  app.get("/api/shipments", requireAuth, async (req, res) => {
     try {
       const driverId = req.query.driverId ? parseInt(req.query.driverId as string) : undefined;
       const shipments = driverId 
@@ -234,7 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/shipments/:id", async (req, res) => {
+  app.get("/api/shipments/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const shipment = await storage.getShipment(id);
@@ -247,7 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/shipments", async (req, res) => {
+  app.post("/api/shipments", requireAuth, requireAdmin, async (req, res) => {
     try {
       const validatedData = insertShipmentSchema.parse(req.body);
       const shipment = await storage.createShipment(validatedData);
@@ -261,7 +346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Hours of Service routes
-  app.get("/api/hos/:driverId", async (req, res) => {
+  app.get("/api/hos/:driverId", requireAuth, async (req, res) => {
     try {
       const driverId = parseInt(req.params.driverId);
       const hos = await storage.getHoSByDriver(driverId);
@@ -276,7 +361,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/hos/:driverId", async (req, res) => {
+  app.patch("/api/hos/:driverId", requireAuth, async (req, res) => {
     try {
       const driverId = parseInt(req.params.driverId);
       const hos = await storage.updateHoS(driverId, req.body);
@@ -287,7 +372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Expense reports routes
-  app.post("/api/expense-reports", async (req, res) => {
+  app.post("/api/expense-reports", requireAuth, async (req, res) => {
     try {
       const expenseReport = req.body;
       // Store expense report in storage
@@ -298,7 +383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/expense-reports", async (req, res) => {
+  app.get("/api/expense-reports", requireAuth, async (req, res) => {
     try {
       const driverId = req.query.driverId ? parseInt(req.query.driverId as string) : undefined;
       const reports = await storage.getExpenseReports(driverId);
@@ -309,7 +394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Inspection routes
-  app.get("/api/inspections", async (req, res) => {
+  app.get("/api/inspections", requireAuth, async (req, res) => {
     try {
       const driverId = req.query.driverId ? parseInt(req.query.driverId as string) : undefined;
       const inspections = await storage.getInspectionReports(driverId);
@@ -319,7 +404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/inspections", async (req, res) => {
+  app.post("/api/inspections", requireAuth, async (req, res) => {
     try {
       const validatedData = insertInspectionReportSchema.parse(req.body);
       const inspection = await storage.createInspectionReport(validatedData);
@@ -332,7 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/inspections/:id", async (req, res) => {
+  app.patch("/api/inspections/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const inspection = await storage.updateInspectionReport(id, req.body);
@@ -396,9 +481,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard data route
-  app.get("/api/dashboard/:driverId", async (req, res) => {
+  app.get("/api/dashboard/:driverId", requireAuth, async (req, res) => {
     try {
+      const user = (req as any).user;
       const driverId = parseInt(req.params.driverId);
+      
+      // Non-admin users can only access their own dashboard
+      if (user.role !== 'admin' && user.id !== driverId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
 
       const [driver, hos, inspections, documents, activities, shipments] = await Promise.all([
         storage.getDriver(driverId),
@@ -453,7 +544,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Routes endpoints
-  app.get("/api/routes", async (req, res) => {
+  app.get("/api/routes", requireAuth, async (req, res) => {
     try {
       const driverId = req.query.driverId ? parseInt(req.query.driverId as string) : undefined;
       const routes = await storage.getRoutes(driverId);
@@ -464,7 +555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/routes", async (req, res) => {
+  app.post("/api/routes", requireAuth, async (req, res) => {
     try {
       const validatedData = insertRouteSchema.parse(req.body);
       const route = await storage.createRoute(validatedData);

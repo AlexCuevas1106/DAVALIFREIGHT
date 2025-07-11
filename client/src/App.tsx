@@ -1,56 +1,135 @@
-import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+
+import { Switch, Route, Redirect } from "wouter";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sidebar } from "@/components/sidebar";
-import Dashboard from "@/pages/dashboard";
-import ExpensesReport from "@/pages/expenses-report";
-import Documents from "@/pages/documents";
-import InspectionPage from "@/pages/inspection";
-import InspectionHistoryPage from "@/pages/inspection-history";
-import Routes from "@/pages/routes";
-import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/useAuth";
 
-function Router() {
-  const { isAdmin } = useAuth();
+// Pages
+import Dashboard from "@/pages/dashboard";
+import Documents from "@/pages/documents";
+import ExpensesReport from "@/pages/expenses-report";
+import Routes from "@/pages/routes";
+import Inspection from "@/pages/inspection";
+import InspectionHistory from "@/pages/inspection-history";
+import Login from "@/pages/login";
+import NotFound from "@/pages/not-found";
+
+import "./index.css";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: (failureCount, error: any) => {
+        if (error?.status === 401) return false;
+        return failureCount < 3;
+      },
+    },
+  },
+});
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Redirect to="/login" />;
+  }
+
+  return <>{children}</>;
+}
+
+function AuthRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Redirect to="/" />;
+  }
+
+  return <>{children}</>;
+}
+
+function AppContent() {
+  const { isAuthenticated } = useAuth();
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <main className="flex-1 overflow-auto">
+    <TooltipProvider>
+      <div className="min-h-screen bg-gray-50">
+        {isAuthenticated && <Sidebar />}
         <Switch>
-          <Route path="/" component={Dashboard} />
-          <Route path="/expenses-report" component={ExpensesReport} />
-          <Route path="/documents" component={Documents} />
-          <Route path="/routes" component={Routes} />
-          <Route path="/inspection" component={InspectionPage} />
-          <Route path="/inspection-history" component={InspectionHistoryPage} />
-          {/* Routes only for administrators */}
-          {isAdmin && (
-            <>
-              <Route path="/vehicles" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Vehicles (Coming Soon)</h1></div>} />
-              <Route path="/drivers" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Drivers (Coming Soon)</h1></div>} />
-              <Route path="/shipments" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Shipments (Coming Soon)</h1></div>} />
-              <Route path="/reports" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Reports (Coming Soon)</h1></div>} />
-              <Route path="/settings" component={() => <div className="p-6"><h1 className="text-2xl font-bold">Settings (Coming Soon)</h1></div>} />
-            </>
-          )}
-          <Route component={NotFound} />
+          <Route path="/login">
+            <AuthRoute>
+              <Login />
+            </AuthRoute>
+          </Route>
+          
+          <Route path="/">
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          </Route>
+          
+          <Route path="/documents">
+            <ProtectedRoute>
+              <Documents />
+            </ProtectedRoute>
+          </Route>
+          
+          <Route path="/expenses-report">
+            <ProtectedRoute>
+              <ExpensesReport />
+            </ProtectedRoute>
+          </Route>
+          
+          <Route path="/routes">
+            <ProtectedRoute>
+              <Routes />
+            </ProtectedRoute>
+          </Route>
+          
+          <Route path="/inspection">
+            <ProtectedRoute>
+              <Inspection />
+            </ProtectedRoute>
+          </Route>
+          
+          <Route path="/inspection-history">
+            <ProtectedRoute>
+              <InspectionHistory />
+            </ProtectedRoute>
+          </Route>
+          
+          <Route>
+            <NotFound />
+          </Route>
         </Switch>
-      </main>
-    </div>
+        <Toaster />
+      </div>
+    </TooltipProvider>
   );
 }
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Router />
-        <Toaster />
-      </TooltipProvider>
+      <AppContent />
     </QueryClientProvider>
   );
 }

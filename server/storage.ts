@@ -1,3 +1,6 @@
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+import bcrypt from "bcrypt";
 import {
   drivers,
   vehicles,
@@ -9,28 +12,29 @@ import {
   activityLogs,
   documentFiles,
   routes,
-  type Driver,
-  type InsertDriver,
-  type Vehicle,
-  type InsertVehicle,
-  type Trailer,
-  type InsertTrailer,
-  type Shipment,
-  type InsertShipment,
-  type HoursOfService,
-  type InspectionReport,
-  type InsertInspectionReport,
-  type Document,
-  type InsertDocument,
-  type ActivityLog,
-  type InsertActivityLog,
-  type DocumentFile,
-  type InsertDocumentFile,
-  type Route,
-  type InsertRoute,
 } from "@shared/schema";
-import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import type {
+  Driver,
+  InsertDriver,
+  Vehicle,
+  InsertVehicle,
+  Trailer,
+  InsertTrailer,
+  Shipment,
+  InsertShipment,
+  HoursOfService,
+  InspectionReport,
+  InsertInspectionReport,
+  Document,
+  InsertDocument,
+  ActivityLog,
+  InsertActivityLog,
+  DocumentFile,
+  InsertDocumentFile,
+  Route,
+  InsertRoute,
+  RegisterRequest,
+} from "@shared/schema";
 
 export interface IStorage {
   // Driver operations
@@ -92,6 +96,11 @@ export interface IStorage {
   // Expense Report operations
   createExpenseReport(reportData: any): Promise<any>;
   getExpenseReports(driverId?: number): Promise<any[]>;
+
+  // Authentication methods
+  authenticateUser(username: string, password: string): Promise<Driver | null>;
+  registerUser(userData: RegisterRequest): Promise<Driver>;
+  getUserById(id: number): Promise<Driver | undefined>;
 }
 
 
@@ -347,6 +356,54 @@ export class DatabaseStorage implements IStorage {
       .values(insertLog)
       .returning();
     return log;
+  }
+
+  async deleteRoute(id: number): Promise<boolean> {
+    const result = await db.delete(routes).where(eq(routes.id, id));
+    return result.changes > 0;
+  }
+
+  // Authentication methods
+  async authenticateUser(username: string, password: string): Promise<Driver | null> {
+    const [user] = await db.select().from(drivers).where(eq(drivers.username, username));
+
+    if (!user) {
+      return null;
+    }
+
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      return null;
+    }
+
+    // Don't return password in the result
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword as Driver;
+  }
+
+  async registerUser(userData: RegisterRequest): Promise<Driver> {
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
+
+    const [user] = await db
+      .insert(drivers)
+      .values({
+        ...userData,
+        password: hashedPassword,
+      })
+      .returning();
+
+    // Don't return password in the result
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword as Driver;
+  }
+
+  async getUserById(id: number): Promise<Driver | undefined> {
+    const [user] = await db.select().from(drivers).where(eq(drivers.id, id));
+    if (!user) return undefined;
+
+    // Don't return password in the result
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword as Driver;
   }
 }
 
@@ -831,8 +888,7 @@ export class MemStorage implements IStorage {
   }
 
   async createExpenseReport(reportData: any): Promise<any> {
-    const report = {
-      id: Date.now(),
+    const report = {      id: Date.now(),
       driverId: reportData.driverId || 1,
       tripRecord: JSON.stringify(reportData.tripRecord),
       fuelEntries: JSON.stringify(reportData.fuelEntries),
@@ -866,6 +922,55 @@ export class MemStorage implements IStorage {
         return null;
       }
     }).filter(Boolean);
+  }
+
+  // Authentication methods
+  async authenticateUser(username: string, password: string): Promise<Driver | null> {
+    const user = Array.from(this.drivers.values()).find(d => d.username === username);
+
+    if (!user) {
+      return null;
+    }
+
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      return null;
+    }
+
+    // Don't return password in the result
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword as Driver;
+  }
+
+  async registerUser(userData: RegisterRequest): Promise<Driver> {
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
+
+    const user: Driver = {
+      id: this.currentDriverId++,
+      ...userData,
+      password: hashedPassword,
+      status: "off_duty",
+      dutyStartTime: null,
+      currentVehicleId: null,
+      currentTrailerId: null,
+      isActive: true,
+      createdAt: new Date(),
+    };
+
+    this.drivers.set(user.id, user);
+
+    // Don't return password in the result
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword as Driver;
+  }
+
+  async getUserById(id: number): Promise<Driver | undefined> {
+    const user = this.drivers.get(id);
+    if (!user) return undefined;
+
+    // Don't return password in the result
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword as Driver;
   }
 }
 
