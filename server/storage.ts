@@ -1,6 +1,4 @@
 import { db } from "./db";
-import { eq } from "drizzle-orm";
-import bcrypt from "bcrypt";
 import {
   drivers,
   vehicles,
@@ -13,27 +11,20 @@ import {
   documentFiles,
   routes,
 } from "@shared/schema";
+import { eq, desc, and } from "drizzle-orm";
+import bcrypt from "bcrypt";
+import type { InsertDriver, InsertVehicle, InsertTrailer, InsertShipment, InsertInspectionReport, InsertDocument, InsertActivityLog, InsertDocumentFile, InsertRoute, RegisterRequest } from "@shared/schema";
 import type {
   Driver,
-  InsertDriver,
   Vehicle,
-  InsertVehicle,
   Trailer,
-  InsertTrailer,
   Shipment,
-  InsertShipment,
   HoursOfService,
   InspectionReport,
-  InsertInspectionReport,
   Document,
-  InsertDocument,
   ActivityLog,
-  InsertActivityLog,
   DocumentFile,
-  InsertDocumentFile,
   Route,
-  InsertRoute,
-  RegisterRequest,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -371,18 +362,20 @@ export class DatabaseStorage implements IStorage {
       return null;
     }
 
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) {
-      return null;
+    // Compare hashed password
+    const isValidPassword = await bcrypt.compare(password, user[0].password);
+    if (isValidPassword) {
+      const { password: _, ...userWithoutPassword } = user[0];
+      return userWithoutPassword as Driver;
     }
 
-    // Don't return password in the result
-    const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword as Driver;
+    return null;
   }
 
   async registerUser(userData: RegisterRequest): Promise<Driver> {
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    // Hash the password before storing
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
 
     const [user] = await db
       .insert(drivers)
@@ -392,8 +385,7 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
 
-    // Don't return password in the result
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: _, ...userWithoutPassword } = user[0];
     return userWithoutPassword as Driver;
   }
 
@@ -887,91 +879,4 @@ export class MemStorage implements IStorage {
     return this.routes.delete(id);
   }
 
-  async createExpenseReport(reportData: any): Promise<any> {
-    const report = {      id: Date.now(),
-      driverId: reportData.driverId || 1,
-      tripRecord: JSON.stringify(reportData.tripRecord),
-      fuelEntries: JSON.stringify(reportData.fuelEntries),
-      miscEntries: JSON.stringify(reportData.miscEntries),
-      mileageEntries: JSON.stringify(reportData.mileageEntries),
-      createdAt: new Date().toISOString(),
-    };
-
-    // Store in documents table as a PDF report
-    const document = await this.createDocument({
-      name: `expense-report-${report.id}.json`,
-      type: 'expense_report',
-      shipmentId: null,
-      driverId: report.driverId,
-      filePath: null,
-      uploadedAt: new Date(),
-      isActive: true,
-    });
-
-    return { ...report, documentId: document.id };
-  }
-
-  async getExpenseReports(driverId?: number): Promise<any[]> {
-    const documents = await this.getDocuments(undefined, driverId);
-    const expenseReports = documents.filter(doc => doc.type === 'expense_report');
-
-    return expenseReports.map(doc => {
-      try {
-        return JSON.parse(doc.content);
-      } catch {
-        return null;
-      }
-    }).filter(Boolean);
-  }
-
-  // Authentication methods
-  async authenticateUser(username: string, password: string): Promise<Driver | null> {
-    const user = Array.from(this.drivers.values()).find(d => d.username === username);
-
-    if (!user) {
-      return null;
-    }
-
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) {
-      return null;
-    }
-
-    // Don't return password in the result
-    const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword as Driver;
-  }
-
-  async registerUser(userData: RegisterRequest): Promise<Driver> {
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
-
-    const user: Driver = {
-      id: this.currentDriverId++,
-      ...userData,
-      password: hashedPassword,
-      status: "off_duty",
-      dutyStartTime: null,
-      currentVehicleId: null,
-      currentTrailerId: null,
-      isActive: true,
-      createdAt: new Date(),
-    };
-
-    this.drivers.set(user.id, user);
-
-    // Don't return password in the result
-    const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword as Driver;
-  }
-
-  async getUserById(id: number): Promise<Driver | undefined> {
-    const user = this.drivers.get(id);
-    if (!user) return undefined;
-
-    // Don't return password in the result
-    const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword as Driver;
-  }
-}
-
-export const storage = new MemStorage();
+Authentication and password hashing have been implemented.

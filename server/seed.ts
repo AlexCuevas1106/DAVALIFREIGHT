@@ -10,6 +10,7 @@ import {
   activityLogs,
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import bcrypt from "bcrypt";
 
 export async function seedDatabase() {
   console.log("Seeding database...");
@@ -22,11 +23,17 @@ export async function seedDatabase() {
   }
 
   try {
+    // Hash passwords for seed data
+    const saltRounds = 10;
+    const hashedDriverPassword = await bcrypt.hash("password123", saltRounds);
+    const hashedAdminPassword = await bcrypt.hash("admin123", saltRounds);
+
     // Create sample driver
     const [driver] = await db
       .insert(drivers)
       .values({
         username: "skyler.droubay",
+        password: hashedDriverPassword,
         name: "Skyler Droubay",
         email: "skyler@davalifreight.com",
         phone: "+1-555-0123",
@@ -38,6 +45,23 @@ export async function seedDatabase() {
         currentTrailerId: null,
       })
       .returning();
+
+    // Create sample admin user
+    await db
+      .insert(drivers)
+      .values({
+        username: "admin",
+        password: hashedAdminPassword,
+        name: "Admin User",
+        email: "admin@davalifreight.com",
+        phone: "+1-555-0100",
+        licenseNumber: null,
+        role: "admin",
+        status: "off_duty",
+        dutyStartTime: null,
+        currentVehicleId: null,
+        currentTrailerId: null,
+      });
 
     // Create sample vehicle
     const [vehicle] = await db
