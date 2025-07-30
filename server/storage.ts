@@ -460,33 +460,33 @@ export class DatabaseStorage implements IStorage {
 
 // Temporarily use MemStorage while database connection is being resolved
 export class MemStorage implements IStorage {
-  private drivers: Map<number, Driver> = new Map();
-  private vehicles: Map<number, Vehicle> = new Map();
-  private trailers: Map<number, Trailer> = new Map();
-  private shipments: Map<number, Shipment> = new Map();
-  private hoursOfService: Map<number, HoursOfService> = new Map();
-  private inspectionReports: Map<number, InspectionReport> = new Map();
-  private documents: Map<number, Document> = new Map();
-  private activityLogs: Map<number, ActivityLog> = new Map();
-  private documentFiles: Map<number, DocumentFile> = new Map();
-  private routes: Map<number, Route> = new Map();
+  protected drivers: Map<number, Driver> = new Map();
+  protected vehicles: Map<number, Vehicle> = new Map();
+  protected trailers: Map<number, Trailer> = new Map();
+  protected shipments: Map<number, Shipment> = new Map();
+  protected hoursOfService: Map<number, HoursOfService> = new Map();
+  protected inspectionReports: Map<number, InspectionReport> = new Map();
+  protected documents: Map<number, Document> = new Map();
+  protected activityLogs: Map<number, ActivityLog> = new Map();
+  protected documentFiles: Map<number, DocumentFile> = new Map();
+  protected routes: Map<number, Route> = new Map();
 
-  private currentDriverId = 1;
-  private currentVehicleId = 1;
-  private currentTrailerId = 1;
-  private currentShipmentId = 1;
-  private currentHoSId = 1;
-  private currentInspectionId = 1;
-  private currentDocumentId = 1;
-  private currentActivityId = 1;
-  private currentDocumentFileId = 1;
-  private currentRouteId = 1;
+  protected currentDriverId = 1;
+  protected currentVehicleId = 1;
+  protected currentTrailerId = 1;
+  protected currentShipmentId = 1;
+  protected currentHoSId = 1;
+  protected currentInspectionId = 1;
+  protected currentDocumentId = 1;
+  protected currentActivityId = 1;
+  protected currentDocumentFileId = 1;
+  protected currentRouteId = 1;
 
   constructor() {
     this.seedData();
   }
 
-  private async seedData() {
+  protected async seedData() {
     // Create sample driver with properly hashed password
     const saltRounds = 10;
     const hashedDriverPassword = await bcrypt.hash("password123", saltRounds);
@@ -1068,7 +1068,30 @@ class AsyncMemStorage extends MemStorage {
   private initialized = false;
 
   constructor() {
-    super();
+    // Don't call super() to avoid sync seedData call
+    // Initialize maps manually
+    this.drivers = new Map();
+    this.vehicles = new Map();
+    this.trailers = new Map();
+    this.shipments = new Map();
+    this.hoursOfService = new Map();
+    this.inspectionReports = new Map();
+    this.documents = new Map();
+    this.activityLogs = new Map();
+    this.documentFiles = new Map();
+    this.routes = new Map();
+    
+    // Initialize counters
+    this.currentDriverId = 1;
+    this.currentVehicleId = 1;
+    this.currentTrailerId = 1;
+    this.currentShipmentId = 1;
+    this.currentHoSId = 1;
+    this.currentInspectionId = 1;
+    this.currentDocumentId = 1;
+    this.currentActivityId = 1;
+    this.currentDocumentFileId = 1;
+    this.currentRouteId = 1;
   }
 
   private async initialize() {
@@ -1091,6 +1114,16 @@ class AsyncMemStorage extends MemStorage {
   async getAllDrivers(): Promise<Driver[]> {
     await this.initialize();
     return super.getAllDrivers();
+  }
+
+  async registerUser(userData: RegisterRequest): Promise<Driver> {
+    await this.initialize();
+    return super.registerUser(userData);
+  }
+
+  async getUserById(id: number): Promise<Driver | undefined> {
+    await this.initialize();
+    return super.getUserById(id);
   }
 }
 
