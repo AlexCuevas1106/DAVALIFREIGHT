@@ -7,7 +7,7 @@ import { Sidebar } from "@/components/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 
 // Pages
-import Dashboard from "@/pages/dashboard";
+import Dashboard from "@/pages/dashboard-simple";
 import Documents from "@/pages/documents";
 import ExpensesReport from "@/pages/expenses-report";
 import Routes from "@/pages/routes";
