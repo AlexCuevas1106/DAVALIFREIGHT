@@ -46,12 +46,15 @@ export default function Login() {
       
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       console.log("Login successful, redirecting to dashboard", data);
-      // Clear any existing auth data and refetch
-      queryClient.clear();
-      // Force immediate redirect
-      window.location.href = "/";
+      // Invalidate and refetch user data
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+      // Redirect after ensuring data is refreshed
+      setTimeout(() => {
+        setLocation("/");
+      }, 200);
     },
   });
 

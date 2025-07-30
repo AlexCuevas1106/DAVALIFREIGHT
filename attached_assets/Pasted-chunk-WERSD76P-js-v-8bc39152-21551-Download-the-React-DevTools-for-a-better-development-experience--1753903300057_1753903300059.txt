@@ -1,0 +1,64 @@
+chunk-WERSD76P.js?v=8bc39152:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+useAuth.ts:18 useAuth - user: undefined isLoading: true error: null
+useAuth.ts:18 useAuth - user: undefined isLoading: true error: null
+App.tsx:36 ProtectedRoute - isAuthenticated: false isLoading: true user: undefined
+useAuth.ts:18 useAuth - user: undefined isLoading: false error: Error: Missing queryFn: '["/api/auth/user"]'
+    at @tanstack_react-query.js?v=8bc39152:255:33
+    at Object.fetchFn [as fn] (@tanstack_react-query.js?v=8bc39152:840:14)
+    at run (@tanstack_react-query.js?v=8bc39152:494:49)
+    at Object.start (@tanstack_react-query.js?v=8bc39152:536:9)
+    at _a4.fetch (@tanstack_react-query.js?v=8bc39152:926:41)
+    at _a9.executeFetch_fn (@tanstack_react-query.js?v=8bc39152:2211:51)
+    at _a9.onSubscribe (@tanstack_react-query.js?v=8bc39152:1898:74)
+    at _a9.subscribe (@tanstack_react-query.js?v=8bc39152:24:10)
+    at @tanstack_react-query.js?v=8bc39152:3022:60
+    at subscribeToStore (chunk-WERSD76P.js?v=8bc39152:11984:18)
+useAuth.ts:18 useAuth - user: undefined isLoading: false error: Error: Missing queryFn: '["/api/auth/user"]'
+    at @tanstack_react-query.js?v=8bc39152:255:33
+    at Object.fetchFn [as fn] (@tanstack_react-query.js?v=8bc39152:840:14)
+    at run (@tanstack_react-query.js?v=8bc39152:494:49)
+    at Object.start (@tanstack_react-query.js?v=8bc39152:536:9)
+    at _a4.fetch (@tanstack_react-query.js?v=8bc39152:926:41)
+    at _a9.executeFetch_fn (@tanstack_react-query.js?v=8bc39152:2211:51)
+    at _a9.onSubscribe (@tanstack_react-query.js?v=8bc39152:1898:74)
+    at _a9.subscribe (@tanstack_react-query.js?v=8bc39152:24:10)
+    at @tanstack_react-query.js?v=8bc39152:3022:60
+    at subscribeToStore (chunk-WERSD76P.js?v=8bc39152:11984:18)
+App.tsx:36 ProtectedRoute - isAuthenticated: false isLoading: false user: undefined
+App.tsx:47 User not authenticated, redirecting to login
+useAuth.ts:18 useAuth - user: undefined isLoading: false error: Error: Missing queryFn: '["/api/auth/user"]'
+    at @tanstack_react-query.js?v=8bc39152:255:33
+    at Object.fetchFn [as fn] (@tanstack_react-query.js?v=8bc39152:840:14)
+    at run (@tanstack_react-query.js?v=8bc39152:494:49)
+    at Object.start (@tanstack_react-query.js?v=8bc39152:536:9)
+    at _a4.fetch (@tanstack_react-query.js?v=8bc39152:926:41)
+    at _a9.executeFetch_fn (@tanstack_react-query.js?v=8bc39152:2211:51)
+    at _a9.onSubscribe (@tanstack_react-query.js?v=8bc39152:1898:74)
+    at _a9.subscribe (@tanstack_react-query.js?v=8bc39152:24:10)
+    at @tanstack_react-query.js?v=8bc39152:3022:60
+    at subscribeToStore (chunk-WERSD76P.js?v=8bc39152:11984:18)
+useAuth.ts:18 useAuth - user: undefined isLoading: true error: null
+useAuth.ts:18 useAuth - user: undefined isLoading: true error: null
+useAuth.ts:18 useAuth - user: undefined isLoading: true error: null
+useAuth.ts:18 useAuth - user: undefined isLoading: false error: Error: Missing queryFn: '["/api/auth/user"]'
+    at @tanstack_react-query.js?v=8bc39152:255:33
+    at Object.fetchFn [as fn] (@tanstack_react-query.js?v=8bc39152:840:14)
+    at run (@tanstack_react-query.js?v=8bc39152:494:49)
+    at Object.start (@tanstack_react-query.js?v=8bc39152:536:9)
+    at _a4.fetch (@tanstack_react-query.js?v=8bc39152:926:41)
+    at _a9.executeFetch_fn (@tanstack_react-query.js?v=8bc39152:2211:51)
+    at _a9.onSubscribe (@tanstack_react-query.js?v=8bc39152:1898:74)
+    at _a9.subscribe (@tanstack_react-query.js?v=8bc39152:24:10)
+    at @tanstack_react-query.js?v=8bc39152:3022:60
+    at subscribeToStore (chunk-WERSD76P.js?v=8bc39152:11984:18)
+useAuth.ts:18 useAuth - user: undefined isLoading: false error: Error: Missing queryFn: '["/api/auth/user"]'
+    at @tanstack_react-query.js?v=8bc39152:255:33
+    at Object.fetchFn [as fn] (@tanstack_react-query.js?v=8bc39152:840:14)
+    at run (@tanstack_react-query.js?v=8bc39152:494:49)
+    at Object.start (@tanstack_react-query.js?v=8bc39152:536:9)
+    at _a4.fetch (@tanstack_react-query.js?v=8bc39152:926:41)
+    at _a9.executeFetch_fn (@tanstack_react-query.js?v=8bc39152:2211:51)
+    at _a9.onSubscribe (@tanstack_react-query.js?v=8bc39152:1898:74)
+    at _a9.subscribe (@tanstack_react-query.js?v=8bc39152:24:10)
+    at @tanstack_react-query.js?v=8bc39152:3022:60
+    at subscribeToStore (chunk-WERSD76P.js?v=8bc39152:11984:18)
