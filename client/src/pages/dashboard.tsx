@@ -71,12 +71,34 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   
   // Get current user from auth hook
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, isLoading: authLoading } = useAuth();
   
-  const { data: dashboardData, isLoading } = useQuery<DashboardData>({
+  console.log('Dashboard - currentUser:', currentUser, 'authLoading:', authLoading);
+  
+  const { data: dashboardData, isLoading, error } = useQuery<DashboardData>({
     queryKey: ['/api/dashboard/' + (currentUser?.id || 1)],
     enabled: !!currentUser?.id, // Only run query when we have a user
   });
+
+  console.log('Dashboard - dashboardData:', dashboardData, 'isLoading:', isLoading, 'error:', error);
+
+  // Show loading while authenticating
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Show simple message if no user
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div>No user found - please login</div>
+      </div>
+    );
+  }
 
   // Calculate duty timer
   useEffect(() => {
