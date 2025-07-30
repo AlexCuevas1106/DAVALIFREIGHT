@@ -12,7 +12,10 @@ export function useAuth() {
     retry: false,
     staleTime: 0, // Always check for fresh data
     refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
+
+  console.log("useAuth - user:", user, "isLoading:", isLoading, "error:", error);
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
