@@ -12,6 +12,12 @@ interface WelcomeAnimationProps {
 export function WelcomeAnimation({ user, onComplete }: WelcomeAnimationProps) {
   const [currentStep, setCurrentStep] = useState(0);
 
+  // Return early if no user
+  if (!user) {
+    onComplete();
+    return null;
+  }
+
   // Get personalized greeting based on time and user role
   const getPersonalizedGreeting = () => {
     const hour = new Date().getHours();
@@ -32,7 +38,7 @@ export function WelcomeAnimation({ user, onComplete }: WelcomeAnimationProps) {
   const steps = [
     {
       icon: <Truck className="w-12 h-12 text-blue-600" />,
-      title: `${timeGreeting}, ${user.name}!`,
+      title: `${timeGreeting}, ${user.name || 'User'}!`,
       subtitle: "Welcome back to Davali Freight",
       duration: 2000
     },
@@ -157,7 +163,7 @@ export function WelcomeAnimation({ user, onComplete }: WelcomeAnimationProps) {
                   transition={{ delay: 1, duration: 0.5 }}
                   className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full flex items-center justify-center mx-auto text-white font-bold text-xl"
                 >
-                  {user.name.charAt(0).toUpperCase()}
+                  {user.name?.charAt(0).toUpperCase() || 'U'}
                 </motion.div>
               )}
             </CardContent>

@@ -117,6 +117,9 @@ Changelog:
 - June 26, 2025. Implemented role-based access control system (admin vs driver)
 - June 26, 2025. Added route planning system with origin/destination selection
 - June 26, 2025. Created interactive route management with distance calculation
+- July 30, 2025. Fixed authentication flow issues and login redirection problems
+- July 30, 2025. Implemented personalized welcome animation with framer-motion
+- July 30, 2025. Added time-based greetings and role-specific messages for login experience
 ```
 
 ## User Preferences

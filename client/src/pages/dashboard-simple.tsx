@@ -123,14 +123,14 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome, {driver.name}</span>
+              <span className="text-sm text-gray-600">Welcome, {driver?.name || currentUser?.name}</span>
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                driver.status === 'off_duty' ? 'bg-gray-100 text-gray-800' :
-                driver.status === 'on_duty' ? 'bg-green-100 text-green-800' :
-                driver.status === 'driving' ? 'bg-blue-100 text-blue-800' :
+                (driver?.status || currentUser?.status) === 'off_duty' ? 'bg-gray-100 text-gray-800' :
+                (driver?.status || currentUser?.status) === 'on_duty' ? 'bg-green-100 text-green-800' :
+                (driver?.status || currentUser?.status) === 'driving' ? 'bg-blue-100 text-blue-800' :
                 'bg-yellow-100 text-yellow-800'
               }`}>
-                {driver.status}
+                {driver?.status || currentUser?.status || 'unknown'}
               </span>
             </div>
           </div>
@@ -143,7 +143,7 @@ export default function Dashboard() {
                 <CardTitle className="text-sm font-medium">Status</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{driver.status}</div>
+                <div className="text-2xl font-bold">{driver?.status || currentUser?.status || 'Unknown'}</div>
                 <p className="text-xs text-muted-foreground">
                   Current duty status
                 </p>
@@ -155,7 +155,7 @@ export default function Dashboard() {
                 <CardTitle className="text-sm font-medium">On-Time Deliveries</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{metrics.onTimeDeliveries}%</div>
+                <div className="text-2xl font-bold">{metrics?.onTimeDeliveries || 0}%</div>
                 <p className="text-xs text-muted-foreground">
                   Performance metric
                 </p>
@@ -167,7 +167,7 @@ export default function Dashboard() {
                 <CardTitle className="text-sm font-medium">Safety Score</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{metrics.safetyScore}</div>
+                <div className="text-2xl font-bold">{metrics?.safetyScore || 0}</div>
                 <p className="text-xs text-muted-foreground">
                   Safety rating
                 </p>
@@ -179,7 +179,7 @@ export default function Dashboard() {
                 <CardTitle className="text-sm font-medium">HOS Compliance</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{metrics.hosCompliance}%</div>
+                <div className="text-2xl font-bold">{metrics?.hosCompliance || 0}%</div>
                 <p className="text-xs text-muted-foreground">
                   Hours of service
                 </p>
@@ -189,7 +189,7 @@ export default function Dashboard() {
 
           <div className="text-center text-gray-600 mt-8">
             <h2 className="text-xl font-semibold mb-2">Welcome to Davali Freight Dashboard</h2>
-            <p>Dashboard loaded successfully! User: {driver.name} ({driver.role})</p>
+            <p>Dashboard loaded successfully! User: {driver?.name || currentUser?.name} ({driver?.role || currentUser?.role})</p>
           </div>
         </div>
       </main>
