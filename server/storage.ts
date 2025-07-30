@@ -375,7 +375,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDocumentFile(id: number): Promise<boolean> {
     const result = await db.delete(documentFiles).where(eq(documentFiles.id, id));
-    return result.changes > 0;
+    return result.count > 0;
   }
 
   // Route operations
@@ -410,7 +410,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteRoute(id: number): Promise<boolean> {
     const result = await db.delete(routes).where(eq(routes.id, id));
-    return result.changes > 0;
+    return result.count > 0;
   }
 
   // Authentication methods
@@ -580,6 +580,7 @@ export class MemStorage implements IStorage {
       status: "completed",
       defectsFound: false,
       notes: "All systems operational",
+      inspectionData: null,
       createdAt: new Date(Date.now() - 2 * 60 * 1000),
       completedAt: new Date(Date.now() - 1 * 60 * 1000),
     };
@@ -594,6 +595,7 @@ export class MemStorage implements IStorage {
       status: "pending",
       defectsFound: false,
       notes: null,
+      inspectionData: null,
       createdAt: new Date(Date.now() - 30 * 60 * 1000),
       completedAt: null,
     };
@@ -820,6 +822,7 @@ export class MemStorage implements IStorage {
       trailerId: insertReport.trailerId || null,
       defectsFound: insertReport.defectsFound || false,
       notes: insertReport.notes || null,
+      inspectionData: insertReport.inspectionData || null,
       status: "pending",
       createdAt: new Date(),
       completedAt: null,

@@ -80,6 +80,7 @@ export const inspectionReports = pgTable("inspection_reports", {
   status: text("status").notNull().default("pending"), // pending, completed, failed
   defectsFound: boolean("defects_found").notNull().default(false),
   notes: text("notes"),
+  inspectionData: text("inspection_data"), // JSON string containing detailed inspection data
   createdAt: timestamp("created_at").notNull().defaultNow(),
   completedAt: timestamp("completed_at"),
 });
@@ -144,6 +145,11 @@ export const insertDriverSchema = createInsertSchema(drivers).omit({
   id: true,
   dutyStartTime: true,
   isActive: true,
+  createdAt: true,
+});
+
+export const insertInspectionSchema = createInsertSchema(inspectionReports).omit({
+  id: true,
   createdAt: true,
 });
 
