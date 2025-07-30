@@ -483,7 +483,10 @@ export class MemStorage implements IStorage {
   protected currentRouteId = 1;
 
   constructor() {
-    this.seedData();
+    // Only seed data synchronously if we're not being extended by AsyncMemStorage
+    if (this.constructor === MemStorage) {
+      this.seedData();
+    }
   }
 
   protected async seedData() {
@@ -1068,20 +1071,21 @@ class AsyncMemStorage extends MemStorage {
   private initialized = false;
 
   constructor() {
-    // Don't call super() to avoid sync seedData call
-    // Initialize maps manually
-    this.drivers = new Map();
-    this.vehicles = new Map();
-    this.trailers = new Map();
-    this.shipments = new Map();
-    this.hoursOfService = new Map();
-    this.inspectionReports = new Map();
-    this.documents = new Map();
-    this.activityLogs = new Map();
-    this.documentFiles = new Map();
-    this.routes = new Map();
+    // Call super() but with a flag to prevent sync seedData
+    super();
+    // Clear the maps to prevent sync seeding from affecting us
+    this.drivers.clear();
+    this.vehicles.clear();
+    this.trailers.clear();
+    this.shipments.clear();
+    this.hoursOfService.clear();
+    this.inspectionReports.clear();
+    this.documents.clear();
+    this.activityLogs.clear();
+    this.documentFiles.clear();
+    this.routes.clear();
     
-    // Initialize counters
+    // Reset counters
     this.currentDriverId = 1;
     this.currentVehicleId = 1;
     this.currentTrailerId = 1;
