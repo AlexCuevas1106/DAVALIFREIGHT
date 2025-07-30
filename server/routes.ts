@@ -505,18 +505,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      const [driver, hos, inspections, documents, activities, shipments] = await Promise.all([
-        storage.getDriver(driverId),
+      const driver = await storage.getDriver(driverId);
+      if (!driver) {
+        return res.status(404).json({ message: "Driver not found" });
+      }
+
+      // If this is an admin user, provide minimal dashboard data
+      if (driver.role === 'admin') {
+        return res.json({
+          driver,
+          currentVehicle: null,
+          currentTrailer: null,
+          currentShipment: null,
+          hos: null,
+          pendingInspections: 0,
+          totalDocuments: 0,
+          recentActivities: [],
+          metrics: {
+            onTimeDeliveries: 100,
+            fuelEfficiency: 0,
+            safetyScore: 100,
+            hosCompliance: 100
+          }
+        });
+      }
+
+      // For regular drivers, get full data
+      const [hos, inspections, documents, activities, shipments] = await Promise.all([
         storage.getHoSByDriver(driverId),
         storage.getInspectionReports(driverId),
         storage.getDocuments(undefined, driverId),
         storage.getActivityLogs(driverId, 5),
         storage.getShipmentsByDriver(driverId)
       ]);
-
-      if (!driver) {
-        return res.status(404).json({ message: "Driver not found" });
-      }
 
       let currentVehicle = null;
       let currentTrailer = null;
@@ -553,6 +574,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
     } catch (error) {
+      console.error("Dashboard error:", error);
       res.status(500).json({ message: "Failed to fetch dashboard data" });
     }
   });

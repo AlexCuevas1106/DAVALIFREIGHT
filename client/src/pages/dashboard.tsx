@@ -191,71 +191,112 @@ export default function Dashboard() {
 
           {/* Module Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <ModuleCard
-              title="Hours of Service"
-              subtitle="Track driving hours and duty status"
-              icon={Clock}
-              color="bg-blue-600"
-              status="Active"
-              mainValue={hos ? `${Math.floor(hos.remainingDriveTime)}h ${Math.floor((hos.remainingDriveTime % 1) * 60)}m` : '11h 0m'}
-              description="Remaining drive time"
-              onClick={() => console.log('Opening HoS module')}
-            />
+            {driver.role === 'admin' ? (
+              // Admin-specific modules
+              <>
+                <ModuleCard
+                  title="Fleet Management"
+                  subtitle="Manage vehicles and trailers"
+                  icon={Truck}
+                  color="bg-blue-600"
+                  status="Active"
+                  mainValue="All"
+                  description="Fleet overview"
+                  onClick={() => console.log('Opening Fleet module')}
+                />
 
-            <ModuleCard
-              title="DVIR"
-              subtitle="Driver Vehicle Inspection Reports"
-              icon={ClipboardCheck}
-              color="bg-green-600"
-              status={pendingInspections > 0 ? "Pending" : "Complete"}
-              mainValue={pendingInspections.toString()}
-              description="Pending inspections"
-              onClick={() => console.log('Opening DVIR module')}
-            />
+                <ModuleCard
+                  title="Driver Management"
+                  subtitle="Manage driver assignments"
+                  icon={Users}
+                  color="bg-green-600"
+                  status="Active"
+                  mainValue="All"
+                  description="Driver overview"
+                  onClick={() => console.log('Opening Driver module')}
+                />
 
-            <ModuleCard
-              title="Routes"
-              subtitle="Route planning and navigation"
-              icon={Route}
-              color="bg-red-600"
-              status="Active"
-              mainValue={currentShipment?.actualDistance?.toString() || '0'}
-              description="Miles remaining"
-              onClick={() => console.log('Opening Routes module')}
-            />
+                <ModuleCard
+                  title="Reports"
+                  subtitle="System reports and analytics"
+                  icon={FileText}
+                  color="bg-purple-600"
+                  status="Updated"
+                  mainValue="All"
+                  description="System reports"
+                  onClick={() => console.log('Opening Reports module')}
+                />
+              </>
+            ) : (
+              // Driver-specific modules
+              <>
+                <ModuleCard
+                  title="Hours of Service"
+                  subtitle="Track driving hours and duty status"
+                  icon={Clock}
+                  color="bg-blue-600"
+                  status="Active"
+                  mainValue={hos ? `${Math.floor(hos.remainingDriveTime)}h ${Math.floor((hos.remainingDriveTime % 1) * 60)}m` : '11h 0m'}
+                  description="Remaining drive time"
+                  onClick={() => console.log('Opening HoS module')}
+                />
 
-            <ModuleCard
-              title="Documents"
-              subtitle="Bills of lading and paperwork"
-              icon={FileText}
-              color="bg-purple-600"
-              status="Updated"
-              mainValue={totalDocuments.toString()}
-              description="Total documents"
-              onClick={() => console.log('Opening Documents module')}
-            />
+                <ModuleCard
+                  title="DVIR"
+                  subtitle="Driver Vehicle Inspection Reports"
+                  icon={ClipboardCheck}
+                  color="bg-green-600"
+                  status={pendingInspections > 0 ? "Pending" : "Complete"}
+                  mainValue={pendingInspections.toString()}
+                  description="Pending inspections"
+                  onClick={() => console.log('Opening DVIR module')}
+                />
 
-            <ModuleCard
-              title="Vehicle"
-              subtitle="Vehicle status and maintenance"
-              icon={Truck}
-              color="bg-orange-600"
-              status="Good"
-              mainValue={currentVehicle ? `${Math.round(currentVehicle.fuelLevel)}%` : '0%'}
-              description="Fuel level"
-              onClick={() => console.log('Opening Vehicle module')}
-            />
+                <ModuleCard
+                  title="Routes"
+                  subtitle="Route planning and navigation"
+                  icon={Route}
+                  color="bg-red-600"
+                  status="Active"
+                  mainValue={currentShipment?.actualDistance?.toString() || '0'}
+                  description="Miles remaining"
+                  onClick={() => console.log('Opening Routes module')}
+                />
 
-            <ModuleCard
-              title="Driving Team"
-              subtitle="Team coordination and communication"
-              icon={Users}
-              color="bg-gray-600"
-              status="Team"
-              mainValue="4"
-              description="Active members"
-              onClick={() => console.log('Opening Team module')}
-            />
+                <ModuleCard
+                  title="Documents"
+                  subtitle="Bills of lading and paperwork"
+                  icon={FileText}
+                  color="bg-purple-600"
+                  status="Updated"
+                  mainValue={totalDocuments.toString()}
+                  description="Total documents"
+                  onClick={() => console.log('Opening Documents module')}
+                />
+
+                <ModuleCard
+                  title="Vehicle"
+                  subtitle="Vehicle status and maintenance"
+                  icon={Truck}
+                  color="bg-orange-600"
+                  status="Good"
+                  mainValue={currentVehicle ? `${Math.round(currentVehicle.fuelLevel)}%` : '0%'}
+                  description="Fuel level"
+                  onClick={() => console.log('Opening Vehicle module')}
+                />
+
+                <ModuleCard
+                  title="Driving Team"
+                  subtitle="Team coordination and communication"
+                  icon={Users}
+                  color="bg-gray-600"
+                  status="Team"
+                  mainValue="4"
+                  description="Active members"
+                  onClick={() => console.log('Opening Team module')}
+                />
+              </>
+            )}
           </div>
 
           {/* Recent Activity and Performance Metrics */}
