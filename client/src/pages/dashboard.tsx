@@ -98,7 +98,7 @@ export default function Dashboard() {
 
       const data = await response.json();
       console.log("Dashboard data received:", data);
-      return data;
+      return data as DashboardData;
     },
     enabled: !!currentUser?.id && !authLoading,
     retry: 1,
@@ -125,9 +125,34 @@ export default function Dashboard() {
     );
   }
 
-  // Calculate duty timer
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading dashboard...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error("Dashboard error:", error);
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-red-600">Failed to load dashboard data</div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-red-600">No dashboard data available</div>
+      </div>
+    );
+  }
+
+  // Calculate duty timer only if driver data exists and has dutyStartTime
   useEffect(() => {
-    if (dashboardData?.driver.dutyStartTime && dashboardData.driver.status === 'off_duty') {
+    if (dashboardData?.driver?.dutyStartTime && dashboardData.driver.status !== 'on_duty') {
       const dutyStart = new Date(dashboardData.driver.dutyStartTime);
       const updateTimer = () => {
         const now = new Date();
@@ -143,27 +168,11 @@ export default function Dashboard() {
     }
   }, [dashboardData]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading dashboard...</div>
-      </div>
-    );
-  }
-
-  if (!dashboardData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg text-red-600">Failed to load dashboard data</div>
-      </div>
-    );
-  }
-
-  // Extract data from dashboard response
-  const currentVehicle = dashboardData?.currentVehicle;
-  const currentTrailer = dashboardData?.currentTrailer;
-  const currentShipment = dashboardData?.currentShipment;
-  const hos = dashboardData?.hos;
+  // Extract data from dashboard response with safe fallbacks
+  const currentVehicle = dashboardData?.currentVehicle || null;
+  const currentTrailer = dashboardData?.currentTrailer || null;
+  const currentShipment = dashboardData?.currentShipment || null;
+  const hos = dashboardData?.hos || null;
   const pendingInspections = dashboardData?.pendingInspections || 0;
   const totalDocuments = dashboardData?.totalDocuments || 0;
   const recentActivities = dashboardData?.recentActivities || [];
@@ -174,12 +183,15 @@ export default function Dashboard() {
     hosCompliance: 0
   };
 
+  // Use the actual logged-in user data instead of dashboard driver data for user info
+  const displayUser = currentUser;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="ml-64">
         <Header 
-          driver={currentUser}
-          status={currentUser.status}
+          driver={displayUser}
+          status={displayUser.status}
         />
 
         <div className="p-6">
@@ -190,7 +202,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-4">
                     <h3 className="text-lg font-semibold text-gray-900">Current Status</h3>
-                    {dashboardData?.driver.status === 'off_duty' && dutyTimer > 0 && (
+                    {displayUser.status === 'off_duty' && dutyTimer > 0 && (
                       <Badge variant="outline" className="text-gray-600">
                         <Clock className="w-3 h-3 mr-1" />
                         {formatDuration(dutyTimer)}
@@ -198,8 +210,8 @@ export default function Dashboard() {
                     )}
                   </div>
                   <StatusSelector 
-                    driverId={currentUser.id}
-                    currentStatus={currentUser.status}
+                    driverId={displayUser.id}
+                    currentStatus={displayUser.status}
                   />
                 </div>
 
@@ -229,7 +241,7 @@ export default function Dashboard() {
 
           {/* Module Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {currentUser.role === 'admin' ? (
+            {displayUser.role === 'admin' ? (
               // Admin-specific modules
               <>
                 <ModuleCard
