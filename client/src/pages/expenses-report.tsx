@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,6 +61,9 @@ interface MileageEntry {
 
 
 export default function ExpensesReport() {
+  // Get current authenticated user
+  const { user: currentUser, isLoading: authLoading } = useAuth();
+  
   const [tripRecord, setTripRecord] = useState<TripRecord>({
     id: "1",
     loadNumber: "",
@@ -97,11 +101,11 @@ export default function ExpensesReport() {
     },
   ]);
 
-  // Mock driver data
+  // Use authenticated user data
   const driver = {
-    id: 1,
-    name: "Skyler Droubay",
-    role: "driver",
+    id: currentUser?.id || 1,
+    name: currentUser?.name || "Unknown User",
+    role: currentUser?.role || "driver",
   };
 
   const addFuelEntry = () => {
@@ -361,11 +365,39 @@ export default function ExpensesReport() {
     0,
   );
 
+  // Show loading while authenticating
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div>Please login to access expenses</div>
+      </div>
+    );
+  }
+
   return (
     <>
       <Sidebar />
       <div className="ml-64">
-        <Header driver={driver} status="on_duty" />
+        {/* Header with current user info */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-gray-900">Expenses Report</h1>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">Welcome, {driver.name}</span>
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                {driver.role}
+              </span>
+            </div>
+          </div>
+        </div>
 
         <div className="p-6 max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">

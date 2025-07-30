@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,24 +41,31 @@ export default function Documents() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
-
-  // Mock driver data
+  
+  // Get current authenticated user
+  const { user: currentUser, isLoading: authLoading } = useAuth();
+  
+  // Use authenticated user data
   const driver = {
-    id: 1,
-    name: "Skyler Droubay",
-    role: "driver"
+    id: currentUser?.id || 1,
+    name: currentUser?.name || "Unknown User",
+    role: currentUser?.role || "driver"
   };
 
   // Fetch documents
   const { data: documents = [], isLoading } = useQuery({
     queryKey: ['/api/documents', driver.id],
-    queryFn: () => apiRequest(`/api/documents?driverId=${driver.id}`),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/documents?driverId=${driver.id}`);
+      return Array.isArray(response) ? response : [];
+    },
+    enabled: !!driver.id && !authLoading,
   });
 
   // Upload mutation
   const uploadMutation = useMutation({
     mutationFn: async (payload: any) => {
-      return apiRequest('/api/documents/upload', payload);
+      return apiRequest('/api/documents/upload', 'POST', payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
@@ -243,12 +251,36 @@ export default function Documents() {
     </div>
   );
 
+  // Show loading while authenticating
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div>Please login to access documents</div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6 ml-64">
-        <Header 
-          driver={driver}
-          status="on_duty"
-        />
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-gray-900">Documents</h1>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">Welcome, {driver.name}</span>
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                {driver.role}
+              </span>
+            </div>
+          </div>
+        </div>
         
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
