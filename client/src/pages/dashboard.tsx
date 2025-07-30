@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 import { Header } from "@/components/header";
 import { ModuleCard } from "@/components/module-card";
@@ -69,8 +70,12 @@ export default function Dashboard() {
   const [dutyTimer, setDutyTimer] = useState<number>(0);
   const queryClient = useQueryClient();
   
+  // Get current user from auth hook
+  const { user: currentUser } = useAuth();
+  
   const { data: dashboardData, isLoading } = useQuery<DashboardData>({
-    queryKey: ['/api/dashboard/1'], // Using driver ID 1 (Skyler Droubay)
+    queryKey: ['/api/dashboard/' + (currentUser?.id || 1)],
+    enabled: !!currentUser?.id, // Only run query when we have a user
   });
 
   // Calculate duty timer
