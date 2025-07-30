@@ -69,18 +69,43 @@ interface DashboardData {
 export default function Dashboard() {
   const [dutyTimer, setDutyTimer] = useState<number>(0);
   const queryClient = useQueryClient();
-  
+
   // Get current user from auth hook
   const { user: currentUser, isLoading: authLoading } = useAuth();
-  
+
   console.log('Dashboard - currentUser:', currentUser, 'authLoading:', authLoading);
-  
-  const { data: dashboardData, isLoading, error } = useQuery<DashboardData>({
-    queryKey: ['/api/dashboard/' + (currentUser?.id || 1)],
-    enabled: !!currentUser?.id, // Only run query when we have a user
+
+  const { data: dashboardData, isLoading, error } = useQuery({
+    queryKey: ["/api/dashboard", currentUser?.id],
+    queryFn: async () => {
+      if (!currentUser?.id) {
+        throw new Error("No user ID available");
+      }
+
+      console.log("Making dashboard request for user:", currentUser.id);
+
+      const response = await fetch(`/api/dashboard/${currentUser.id}`, {
+        credentials: "include",
+      });
+
+      console.log("Dashboard response status:", response.status);
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error("Dashboard error response:", errorData);
+        throw new Error(`Failed to fetch dashboard data: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Dashboard data received:", data);
+      return data;
+    },
+    enabled: !!currentUser?.id && !authLoading,
+    retry: 1,
+    staleTime: 30000,
   });
 
-  console.log('Dashboard - dashboardData:', dashboardData, 'isLoading:', isLoading, 'error:', error);
+  console.log("Dashboard - dashboardData:", dashboardData, "isLoading:", isLoading, "error:", error);
 
   // Show loading while authenticating
   if (authLoading) {
@@ -110,10 +135,10 @@ export default function Dashboard() {
         const diffMins = Math.floor(diffMs / (1000 * 60));
         setDutyTimer(diffMins);
       };
-      
+
       updateTimer();
       const interval = setInterval(updateTimer, 60000); // Update every minute
-      
+
       return () => clearInterval(interval);
     }
   }, [dashboardData]);
@@ -134,16 +159,29 @@ export default function Dashboard() {
     );
   }
 
-  const { driver, currentVehicle, currentTrailer, currentShipment, hos, pendingInspections, totalDocuments, recentActivities, metrics } = dashboardData;
+  // Extract data from dashboard response
+  const currentVehicle = dashboardData?.currentVehicle;
+  const currentTrailer = dashboardData?.currentTrailer;
+  const currentShipment = dashboardData?.currentShipment;
+  const hos = dashboardData?.hos;
+  const pendingInspections = dashboardData?.pendingInspections || 0;
+  const totalDocuments = dashboardData?.totalDocuments || 0;
+  const recentActivities = dashboardData?.recentActivities || [];
+  const metrics = dashboardData?.metrics || {
+    onTimeDeliveries: 0,
+    fuelEfficiency: 0,
+    safetyScore: 0,
+    hosCompliance: 0
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="ml-64">
         <Header 
-          driver={driver}
-          status={driver.status}
+          driver={currentUser}
+          status={currentUser.status}
         />
-        
+
         <div className="p-6">
           {/* Current Status Section */}
           <div className="mb-8">
@@ -152,7 +190,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-4">
                     <h3 className="text-lg font-semibold text-gray-900">Current Status</h3>
-                    {driver.status === 'off_duty' && dutyTimer > 0 && (
+                    {dashboardData?.driver.status === 'off_duty' && dutyTimer > 0 && (
                       <Badge variant="outline" className="text-gray-600">
                         <Clock className="w-3 h-3 mr-1" />
                         {formatDuration(dutyTimer)}
@@ -160,11 +198,11 @@ export default function Dashboard() {
                     )}
                   </div>
                   <StatusSelector 
-                    driverId={driver.id}
-                    currentStatus={driver.status}
+                    driverId={currentUser.id}
+                    currentStatus={currentUser.status}
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="bg-gray-50 rounded-lg p-4">
                     <p className="text-sm font-medium text-gray-500 mb-1">Vehicle</p>
@@ -191,7 +229,7 @@ export default function Dashboard() {
 
           {/* Module Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {driver.role === 'admin' ? (
+            {currentUser.role === 'admin' ? (
               // Admin-specific modules
               <>
                 <ModuleCard
@@ -341,7 +379,7 @@ export default function Dashboard() {
                       <span className="text-sm font-semibold text-gray-900">{metrics.onTimeDeliveries}%</span>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-600">Fuel Efficiency</span>
                     <div className="flex items-center space-x-2">
@@ -349,7 +387,7 @@ export default function Dashboard() {
                       <span className="text-sm font-semibold text-gray-900">{metrics.fuelEfficiency} MPG</span>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-600">Safety Score</span>
                     <div className="flex items-center space-x-2">
@@ -357,7 +395,7 @@ export default function Dashboard() {
                       <span className="text-sm font-semibold text-gray-900">{metrics.safetyScore}%</span>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-600">HoS Compliance</span>
                     <div className="flex items-center space-x-2">
@@ -366,7 +404,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="mt-6 p-4 bg-green-50 rounded-lg">
                   <div className="flex items-center">
                     <Trophy className="w-5 h-5 text-green-600 mr-3" />

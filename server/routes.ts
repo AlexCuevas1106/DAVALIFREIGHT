@@ -500,20 +500,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = (req as any).user;
       const driverId = parseInt(req.params.driverId);
       
+      console.log("Dashboard request - user:", user.id, "role:", user.role, "requesting driverId:", driverId);
+      
       // Non-admin users can only access their own dashboard
       if (user.role !== 'admin' && user.id !== driverId) {
+        console.log("Access denied - user trying to access different driver data");
         return res.status(403).json({ message: "Access denied" });
       }
 
-      const driver = await storage.getDriver(driverId);
-      if (!driver) {
-        return res.status(404).json({ message: "Driver not found" });
-      }
-
-      // If this is an admin user, provide minimal dashboard data
-      if (driver.role === 'admin') {
+      // If requesting user is admin, provide minimal dashboard data
+      if (user.role === 'admin') {
+        console.log("Providing admin dashboard data");
         return res.json({
-          driver,
           currentVehicle: null,
           currentTrailer: null,
           currentShipment: null,
@@ -530,7 +528,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // For regular drivers, get full data
+      // For regular drivers, get the driver data and full data
+      const driver = await storage.getDriver(driverId);
+      if (!driver) {
+        console.log("Driver not found:", driverId);
+        return res.status(404).json({ message: "Driver not found" });
+      }
+
+      console.log("Getting full driver dashboard data");
       const [hos, inspections, documents, activities, shipments] = await Promise.all([
         storage.getHoSByDriver(driverId),
         storage.getInspectionReports(driverId),
@@ -557,8 +562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const pendingInspections = inspections.filter(i => i.status === "pending");
 
-      res.json({
-        driver,
+      const dashboardData = {
         currentVehicle,
         currentTrailer,
         currentShipment,
@@ -572,7 +576,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           safetyScore: 98,
           hosCompliance: 100
         }
-      });
+      };
+
+      console.log("Sending dashboard data:", dashboardData);
+      res.json(dashboardData);
     } catch (error) {
       console.error("Dashboard error:", error);
       res.status(500).json({ message: "Failed to fetch dashboard data" });
