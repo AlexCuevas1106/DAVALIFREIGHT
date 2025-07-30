@@ -356,7 +356,7 @@ export class DatabaseStorage implements IStorage {
       return await db.select().from(documentFiles)
         .where(eq(documentFiles.fileType, fileType as any));
     }
-    
+
     return await db.select().from(documentFiles);
   }
 
@@ -1027,7 +1027,7 @@ export class MemStorage implements IStorage {
   // Authentication methods
   async authenticateUser(username: string, password: string): Promise<Driver | null> {
     const user = await this.getDriverByUsername(username);
-    
+
     if (!user) {
       return null;
     }
@@ -1066,14 +1066,23 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Create and initialize storage instance
-class AsyncMemStorage extends MemStorage {
-  private initialized = false;
+// Create storage instance with delayed initialization
+class InitializedMemStorage extends MemStorage {
+  private initPromise: Promise<void> | null = null;
 
   constructor() {
-    // Call super() but with a flag to prevent sync seedData
     super();
-    // Clear the maps to prevent sync seeding from affecting us
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (!this.initPromise) {
+      this.initPromise = this.initializeAsync();
+    }
+    return this.initPromise;
+  }
+
+  private async initializeAsync(): Promise<void> {
+    // Clear existing data and reinitialize with proper hashing
     this.drivers.clear();
     this.vehicles.clear();
     this.trailers.clear();
@@ -1084,7 +1093,7 @@ class AsyncMemStorage extends MemStorage {
     this.activityLogs.clear();
     this.documentFiles.clear();
     this.routes.clear();
-    
+
     // Reset counters
     this.currentDriverId = 1;
     this.currentVehicleId = 1;
@@ -1096,40 +1105,30 @@ class AsyncMemStorage extends MemStorage {
     this.currentActivityId = 1;
     this.currentDocumentFileId = 1;
     this.currentRouteId = 1;
-  }
 
-  private async initialize() {
-    if (!this.initialized) {
-      await this.seedData();
-      this.initialized = true;
-    }
+    await this.seedData();
   }
 
   async authenticateUser(username: string, password: string): Promise<Driver | null> {
-    await this.initialize();
+    await this.ensureInitialized();
     return super.authenticateUser(username, password);
   }
 
   async getDriverByUsername(username: string): Promise<Driver | undefined> {
-    await this.initialize();
+    await this.ensureInitialized();
     return super.getDriverByUsername(username);
   }
 
   async getAllDrivers(): Promise<Driver[]> {
-    await this.initialize();
+    await this.ensureInitialized();
     return super.getAllDrivers();
   }
 
-  async registerUser(userData: RegisterRequest): Promise<Driver> {
-    await this.initialize();
+  async registerUser(userData: any): Promise<Driver> {
+    await this.ensureInitialized();
     return super.registerUser(userData);
-  }
-
-  async getUserById(id: number): Promise<Driver | undefined> {
-    await this.initialize();
-    return super.getUserById(id);
   }
 }
 
 // Export storage instance
-export const storage = new AsyncMemStorage();
+export const storage = new InitializedMemStorage();
