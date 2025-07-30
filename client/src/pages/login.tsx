@@ -51,6 +51,8 @@ export default function Login() {
       // Invalidate and refetch user data
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+      // Clear the "hasShownWelcome" state in localStorage to trigger animation
+      localStorage.removeItem("hasShownWelcome");
       // Redirect after ensuring data is refreshed
       setTimeout(() => {
         setLocation("/");

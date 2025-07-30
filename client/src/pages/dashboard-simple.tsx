@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { WelcomeAnimation } from "@/components/welcome-animation";
 
 interface DashboardData {
   driver: {
@@ -33,6 +35,20 @@ interface DashboardData {
 
 export default function Dashboard() {
   const { user: currentUser, isLoading: authLoading } = useAuth();
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [hasShownWelcome, setHasShownWelcome] = useState(() => {
+    // Check localStorage to see if we've shown welcome for this session
+    return localStorage.getItem("hasShownWelcome") === "true";
+  });
+
+  // Show welcome animation when user first loads dashboard
+  useEffect(() => {
+    if (currentUser && !authLoading && !hasShownWelcome) {
+      setShowWelcome(true);
+      setHasShownWelcome(true);
+      localStorage.setItem("hasShownWelcome", "true");
+    }
+  }, [currentUser, authLoading, hasShownWelcome]);
   
   const { data: dashboardData, isLoading } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard", currentUser?.id],
@@ -90,13 +106,35 @@ export default function Dashboard() {
 
   const { driver, metrics } = dashboardData;
 
+  // Show welcome animation
+  if (showWelcome) {
+    return (
+      <WelcomeAnimation 
+        user={currentUser} 
+        onComplete={() => setShowWelcome(false)} 
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="ml-64">
-        <Header 
-          driver={driver}
-          status={driver.status}
-        />
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">Welcome, {driver.name}</span>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                driver.status === 'off_duty' ? 'bg-gray-100 text-gray-800' :
+                driver.status === 'on_duty' ? 'bg-green-100 text-green-800' :
+                driver.status === 'driving' ? 'bg-blue-100 text-blue-800' :
+                'bg-yellow-100 text-yellow-800'
+              }`}>
+                {driver.status}
+              </span>
+            </div>
+          </div>
+        </div>
         
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
