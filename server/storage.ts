@@ -483,10 +483,7 @@ export class MemStorage implements IStorage {
   protected currentRouteId = 1;
 
   constructor() {
-    // Only seed data synchronously if we're not being extended by AsyncMemStorage
-    if (this.constructor === MemStorage) {
-      this.seedData();
-    }
+    // Don't seed data in constructor
   }
 
   protected async seedData() {
@@ -1066,69 +1063,20 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Create storage instance with delayed initialization
-class InitializedMemStorage extends MemStorage {
-  private initPromise: Promise<void> | null = null;
+// Create a simple memory storage that initializes immediately
+const memStorage = new MemStorage();
 
-  constructor() {
-    super();
-  }
-
-  private async ensureInitialized(): Promise<void> {
-    if (!this.initPromise) {
-      this.initPromise = this.initializeAsync();
-    }
-    return this.initPromise;
-  }
-
-  private async initializeAsync(): Promise<void> {
-    // Clear existing data and reinitialize with proper hashing
-    this.drivers.clear();
-    this.vehicles.clear();
-    this.trailers.clear();
-    this.shipments.clear();
-    this.hoursOfService.clear();
-    this.inspectionReports.clear();
-    this.documents.clear();
-    this.activityLogs.clear();
-    this.documentFiles.clear();
-    this.routes.clear();
-
-    // Reset counters
-    this.currentDriverId = 1;
-    this.currentVehicleId = 1;
-    this.currentTrailerId = 1;
-    this.currentShipmentId = 1;
-    this.currentHoSId = 1;
-    this.currentInspectionId = 1;
-    this.currentDocumentId = 1;
-    this.currentActivityId = 1;
-    this.currentDocumentFileId = 1;
-    this.currentRouteId = 1;
-
-    await this.seedData();
-  }
-
-  async authenticateUser(username: string, password: string): Promise<Driver | null> {
-    await this.ensureInitialized();
-    return super.authenticateUser(username, password);
-  }
-
-  async getDriverByUsername(username: string): Promise<Driver | undefined> {
-    await this.ensureInitialized();
-    return super.getDriverByUsername(username);
-  }
-
-  async getAllDrivers(): Promise<Driver[]> {
-    await this.ensureInitialized();
-    return super.getAllDrivers();
-  }
-
-  async registerUser(userData: any): Promise<Driver> {
-    await this.ensureInitialized();
-    return super.registerUser(userData);
+// Initialize the storage with seed data
+let isInitialized = false;
+async function initializeStorage() {
+  if (!isInitialized) {
+    await memStorage.seedData();
+    isInitialized = true;
   }
 }
 
+// Initialize immediately
+initializeStorage().catch(console.error);
+
 // Export storage instance
-export const storage = new InitializedMemStorage();
+export const storage = memStorage;
