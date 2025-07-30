@@ -47,8 +47,13 @@ export default function Login() {
       return response.json();
     },
     onSuccess: () => {
+      // Force a refetch of user data
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      setLocation("/");
+      queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+      // Small delay to ensure session is established
+      setTimeout(() => {
+        setLocation("/");
+      }, 100);
     },
   });
 
