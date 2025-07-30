@@ -15,7 +15,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     secure: false, // Set to true in production with HTTPS
-    httpOnly: false, // Allow JavaScript access for debugging
+    httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: 'lax' // Help with cross-origin requests
   }

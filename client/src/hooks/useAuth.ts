@@ -9,19 +9,9 @@ export function useAuth() {
 
   const { data: user, isLoading, error } = useQuery<Driver>({
     queryKey: ["/api/auth/user"],
-    queryFn: async () => {
-      const res = await fetch("/api/auth/user", {
-        credentials: "include",
-      });
-      if (res.status === 401) {
-        return null;
-      }
-      if (!res.ok) {
-        throw new Error("Failed to fetch user");
-      }
-      return res.json();
-    },
     retry: false,
+    staleTime: 0, // Always check for fresh data
+    refetchOnMount: true,
   });
 
   const logoutMutation = useMutation({
