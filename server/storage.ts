@@ -486,12 +486,16 @@ export class MemStorage implements IStorage {
     this.seedData();
   }
 
-  private seedData() {
-    // Create sample driver
+  private async seedData() {
+    // Create sample driver with properly hashed password
+    const saltRounds = 10;
+    const hashedDriverPassword = await bcrypt.hash("password123", saltRounds);
+    const hashedAdminPassword = await bcrypt.hash("admin123", saltRounds);
+
     const driver: Driver = {
       id: this.currentDriverId++,
       username: "skyler.droubay",
-      password: "$2b$10$abcdefghijklmnopqrstuvwxyz123456", // hashed password for "password123"
+      password: hashedDriverPassword,
       name: "Skyler Droubay",
       email: "skyler@davalifreight.com",
       phone: "+1-555-0123",
@@ -505,6 +509,25 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
     };
     this.drivers.set(driver.id, driver);
+
+    // Create sample admin user
+    const admin: Driver = {
+      id: this.currentDriverId++,
+      username: "admin",
+      password: hashedAdminPassword,
+      name: "Admin User",
+      email: "admin@davalifreight.com",
+      phone: "+1-555-0100",
+      licenseNumber: null,
+      role: "admin",
+      status: "off_duty",
+      dutyStartTime: null,
+      currentVehicleId: null,
+      currentTrailerId: null,
+      isActive: true,
+      createdAt: new Date(),
+    };
+    this.drivers.set(admin.id, admin);
 
     // Create sample vehicle
     const vehicle: Vehicle = {
@@ -1040,5 +1063,36 @@ export class MemStorage implements IStorage {
   }
 }
 
+// Create and initialize storage instance
+class AsyncMemStorage extends MemStorage {
+  private initialized = false;
+
+  constructor() {
+    super();
+  }
+
+  private async initialize() {
+    if (!this.initialized) {
+      await this.seedData();
+      this.initialized = true;
+    }
+  }
+
+  async authenticateUser(username: string, password: string): Promise<Driver | null> {
+    await this.initialize();
+    return super.authenticateUser(username, password);
+  }
+
+  async getDriverByUsername(username: string): Promise<Driver | undefined> {
+    await this.initialize();
+    return super.getDriverByUsername(username);
+  }
+
+  async getAllDrivers(): Promise<Driver[]> {
+    await this.initialize();
+    return super.getAllDrivers();
+  }
+}
+
 // Export storage instance
-export const storage = new MemStorage();
+export const storage = new AsyncMemStorage();
