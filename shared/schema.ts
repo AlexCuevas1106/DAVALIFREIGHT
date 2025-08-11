@@ -1,9 +1,9 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const drivers = pgTable("drivers", {
-  id: serial("id").primaryKey(),
+export const drivers = sqliteTable("drivers", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
@@ -12,15 +12,15 @@ export const drivers = pgTable("drivers", {
   licenseNumber: text("license_number"),
   role: text("role").notNull().default("driver"), // "admin" or "driver"
   status: text("status").notNull().default("off_duty"), // off_duty, on_duty, driving, sleeper
-  dutyStartTime: timestamp("duty_start_time"),
+  dutyStartTime: integer("duty_start_time", { mode: "timestamp" }),
   currentVehicleId: integer("current_vehicle_id"),
   currentTrailerId: integer("current_trailer_id"),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-export const vehicles = pgTable("vehicles", {
-  id: serial("id").primaryKey(),
+export const vehicles = sqliteTable("vehicles", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   vehicleNumber: text("vehicle_number").notNull().unique(),
   make: text("make").notNull(),
   model: text("model").notNull(),
@@ -30,22 +30,22 @@ export const vehicles = pgTable("vehicles", {
   fuelLevel: real("fuel_level").notNull().default(100),
   mileage: integer("mileage").notNull().default(0),
   status: text("status").notNull().default("available"), // available, in_use, maintenance
-  lastInspectionDate: timestamp("last_inspection_date"),
-  isActive: boolean("is_active").notNull().default(true),
+  lastInspectionDate: integer("last_inspection_date", { mode: "timestamp" }),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 });
 
-export const trailers = pgTable("trailers", {
-  id: serial("id").primaryKey(),
+export const trailers = sqliteTable("trailers", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   trailerNumber: text("trailer_number").notNull().unique(),
   type: text("type").notNull(),
   capacity: real("capacity").notNull(),
   status: text("status").notNull().default("available"), // available, in_use, maintenance
-  lastInspectionDate: timestamp("last_inspection_date"),
-  isActive: boolean("is_active").notNull().default(true),
+  lastInspectionDate: integer("last_inspection_date", { mode: "timestamp" }),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 });
 
-export const shipments = pgTable("shipments", {
-  id: serial("id").primaryKey(),
+export const shipments = sqliteTable("shipments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   shippingId: text("shipping_id").notNull().unique(),
   origin: text("origin").notNull(),
   destination: text("destination").notNull(),
@@ -55,73 +55,73 @@ export const shipments = pgTable("shipments", {
   assignedTrailerId: integer("assigned_trailer_id"),
   estimatedDistance: integer("estimated_distance"),
   actualDistance: integer("actual_distance"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  deliveryDate: timestamp("delivery_date"),
-  isActive: boolean("is_active").notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  deliveryDate: integer("delivery_date", { mode: "timestamp" }),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 });
 
-export const hoursOfService = pgTable("hours_of_service", {
-  id: serial("id").primaryKey(),
+export const hoursOfService = sqliteTable("hours_of_service", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   driverId: integer("driver_id").notNull(),
-  date: timestamp("date").notNull().defaultNow(),
+  date: integer("date", { mode: "timestamp" }).notNull(),
   drivingHours: real("driving_hours").notNull().default(0),
   onDutyHours: real("on_duty_hours").notNull().default(0),
   remainingDriveTime: real("remaining_drive_time").notNull().default(11), // 11 hours max
   remainingDutyTime: real("remaining_duty_time").notNull().default(14), // 14 hours max
-  isCompliant: boolean("is_compliant").notNull().default(true),
+  isCompliant: integer("is_compliant", { mode: "boolean" }).notNull().default(true),
 });
 
-export const inspectionReports = pgTable("inspection_reports", {
-  id: serial("id").primaryKey(),
+export const inspectionReports = sqliteTable("inspection_reports", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   driverId: integer("driver_id").notNull(),
   vehicleId: integer("vehicle_id").notNull(),
   trailerId: integer("trailer_id"),
   type: text("type").notNull(), // pre_trip, post_trip
   status: text("status").notNull().default("pending"), // pending, completed, failed
-  defectsFound: boolean("defects_found").notNull().default(false),
+  defectsFound: integer("defects_found", { mode: "boolean" }).notNull().default(false),
   notes: text("notes"),
   inspectionData: text("inspection_data"), // JSON string containing detailed inspection data
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  completedAt: timestamp("completed_at"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  completedAt: integer("completed_at", { mode: "timestamp" }),
 });
 
-export const documents = pgTable("documents", {
-  id: serial("id").primaryKey(),
+export const documents = sqliteTable("documents", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   type: text("type").notNull(), // bill_of_lading, manifest, permit, etc.
   shipmentId: integer("shipment_id"),
   driverId: integer("driver_id"),
   filePath: text("file_path"),
-  uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
-  isActive: boolean("is_active").notNull().default(true),
+  uploadedAt: integer("uploaded_at", { mode: "timestamp" }).notNull(),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 });
 
-export const activityLogs = pgTable("activity_logs", {
-  id: serial("id").primaryKey(),
+export const activityLogs = sqliteTable("activity_logs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   driverId: integer("driver_id").notNull(),
   activity: text("activity").notNull(),
   description: text("description").notNull(),
-  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  timestamp: integer("timestamp", { mode: "timestamp" }).notNull(),
   relatedEntityType: text("related_entity_type"), // vehicle, shipment, etc.
   relatedEntityId: integer("related_entity_id"),
 });
 
-export const documentFiles = pgTable("document_files", {
-  id: serial("id").primaryKey(),
+export const documentFiles = sqliteTable("document_files", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   fileName: text("file_name").notNull(),
   originalName: text("original_name").notNull(),
-  fileType: text("file_type", { enum: ["bill_of_lading", "fuel_receipt", "pdf_report"] }).notNull(),
-  uploadDate: timestamp("upload_date").defaultNow().notNull(),
-  driverId: integer("driver_id").references(() => drivers.id).notNull(),
-  vehicleId: integer("vehicle_id").references(() => vehicles.id),
+  fileType: text("file_type").notNull(), // "bill_of_lading", "fuel_receipt", "pdf_report"
+  uploadDate: integer("upload_date", { mode: "timestamp" }).notNull(),
+  driverId: integer("driver_id").notNull(),
+  vehicleId: integer("vehicle_id"),
   fileSize: integer("file_size").notNull(),
   filePath: text("file_path").notNull(),
   fileData: text("file_data"), // Base64 encoded file data
 });
 
 // Tabla para rutas de transporte
-export const routes = pgTable("routes", {
-  id: serial("id").primaryKey(),
+export const routes = sqliteTable("routes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   origin: text("origin").notNull(),
   destination: text("destination").notNull(),
@@ -133,11 +133,11 @@ export const routes = pgTable("routes", {
   totalMiles: real("total_miles"), // Total distance in miles
   estimatedDuration: integer("estimated_duration"), // en minutos
   stateBreakdown: text("state_breakdown"), // JSON string with state-by-state miles
-  driverId: integer("driver_id").references(() => drivers.id),
-  shipmentId: integer("shipment_id").references(() => shipments.id),
+  driverId: integer("driver_id"),
+  shipmentId: integer("shipment_id"),
   status: text("status").notNull().default("planned"), // 'planned', 'active', 'completed'
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: integer("created_at", { mode: "timestamp" }),
+  updatedAt: integer("updated_at", { mode: "timestamp" }),
 });
 
 // Insert schemas

@@ -60,7 +60,13 @@ app.use((req, res, next) => {
 
 (async () => {
   // Seed the database with initial data
-  await seedDatabase();
+  try {
+    console.log("Seeding database...");
+    await seedDatabase();
+    console.log("Database seeded successfully!");
+  } catch (error) {
+    console.log("Skipping database seeding due to error:", error.message);
+  }
   
   const server = await registerRoutes(app);
 

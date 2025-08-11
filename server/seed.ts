@@ -40,9 +40,10 @@ export async function seedDatabase() {
         licenseNumber: "CDL-123456789",
         role: "driver",
         status: "off_duty",
-        dutyStartTime: new Date(Date.now() - 21 * 60 * 1000), // 21 minutes ago
+        dutyStartTime: Date.now() - 21 * 60 * 1000, // 21 minutes ago
         currentVehicleId: null,
         currentTrailerId: null,
+        createdAt: Date.now(),
       })
       .returning();
 
@@ -61,6 +62,7 @@ export async function seedDatabase() {
         dutyStartTime: null,
         currentVehicleId: null,
         currentTrailerId: null,
+        createdAt: Date.now(),
       });
 
     // Create sample vehicle
@@ -76,7 +78,7 @@ export async function seedDatabase() {
         fuelLevel: 78,
         mileage: 125000,
         status: "in_use",
-        lastInspectionDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        lastInspectionDate: Date.now() - 2 * 24 * 60 * 60 * 1000,
       })
       .returning();
 
@@ -88,7 +90,7 @@ export async function seedDatabase() {
         type: "Dry Van",
         capacity: 53,
         status: "available",
-        lastInspectionDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+        lastInspectionDate: Date.now() - 1 * 24 * 60 * 60 * 1000,
       })
       .returning();
 
@@ -114,7 +116,8 @@ export async function seedDatabase() {
         assignedTrailerId: trailer.id,
         estimatedDistance: 400,
         actualDistance: 347,
-        deliveryDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+        deliveryDate: Date.now() + 2 * 24 * 60 * 60 * 1000,
+        createdAt: Date.now(),
       })
       .returning();
 
@@ -126,6 +129,7 @@ export async function seedDatabase() {
       remainingDriveTime: 8.7,
       remainingDutyTime: 8.5,
       isCompliant: true,
+      date: Date.now(),
     });
 
     // Create sample inspection reports
@@ -138,7 +142,8 @@ export async function seedDatabase() {
         status: "completed",
         defectsFound: false,
         notes: "All systems operational",
-        completedAt: new Date(Date.now() - 1 * 60 * 1000),
+        completedAt: Date.now() - 1 * 60 * 1000,
+        createdAt: Date.now() - 2 * 60 * 1000,
       },
       {
         driverId: driver.id,
@@ -149,6 +154,7 @@ export async function seedDatabase() {
         defectsFound: false,
         notes: null,
         completedAt: null,
+        createdAt: Date.now() - 1 * 60 * 1000,
       },
     ]);
 
@@ -161,6 +167,7 @@ export async function seedDatabase() {
         shipmentId: shipment.id,
         driverId: driver.id,
         filePath: `/documents/bol_${i + 1}.pdf`,
+        uploadedAt: Date.now() - i * 60 * 1000,
       });
     }
     await db.insert(documents).values(documentValues);
@@ -173,7 +180,7 @@ export async function seedDatabase() {
         description: "Vehicle #25 - Pre-trip inspection completed successfully",
         relatedEntityType: "vehicle" as string,
         relatedEntityId: vehicle.id,
-        timestamp: new Date(Date.now() - 2 * 60 * 1000),
+        timestamp: Date.now() - 2 * 60 * 1000,
       },
       {
         driverId: driver.id,
@@ -181,7 +188,7 @@ export async function seedDatabase() {
         description: "Route updated for delivery #3-86539",
         relatedEntityType: "shipment" as string,
         relatedEntityId: shipment.id,
-        timestamp: new Date(Date.now() - 15 * 60 * 1000),
+        timestamp: Date.now() - 15 * 60 * 1000,
       },
       {
         driverId: driver.id,
@@ -189,7 +196,7 @@ export async function seedDatabase() {
         description: "Documents uploaded for shipment",
         relatedEntityType: "shipment" as string,
         relatedEntityId: shipment.id,
-        timestamp: new Date(Date.now() - 60 * 60 * 1000),
+        timestamp: Date.now() - 60 * 60 * 1000,
       },
     ];
 
