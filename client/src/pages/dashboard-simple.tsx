@@ -49,6 +49,9 @@ export default function Dashboard() {
   // Timer state for duty status
   const [dutyTimer, setDutyTimer] = useState(0);
   
+  // Mobile sidebar state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
   // Always call hooks before any early returns
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -189,170 +192,334 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="ml-64">
-        {/* Header with driver info */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 desktop-app">
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 z-50 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          <div className="absolute inset-0 bg-gray-900 opacity-50"></div>
+          <aside className="relative w-64 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col flex-grow">
+              {/* Logo/Company Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">D</span>
+                  </div>
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">Davali Fleet</span>
+                </div>
+                <button 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-2 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              {/* Navigation */}
+              <nav className="flex-1 px-4 py-6">
+                <div className="space-y-2">
+                  <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg font-medium">
+                    Dashboard
+                  </div>
+                  <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
+                    Hours of Service
+                  </div>
+                  <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
+                    Inspections
+                  </div>
+                  <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
+                    Routes
+                  </div>
+                  <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
+                    Documents
+                  </div>
+                  <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
+                    Vehicles
+                  </div>
+                  <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
+                    Reports
+                  </div>
+                </div>
+              </nav>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      {/* Desktop Sidebar - Hidden on mobile */}
+      <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 z-40">
+        <div className="flex flex-col flex-grow bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 desktop-window">
+          {/* Logo/Company Header */}
+          <div className="flex items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">D</span>
+              </div>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">Davali Fleet</span>
+            </div>
+          </div>
+          
+          {/* Navigation */}
+          <nav className="flex-1 px-4 py-6">
+            <div className="space-y-2">
+              <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg font-medium transition-all">
+                Dashboard
+              </div>
+              <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all">
+                Hours of Service
+              </div>
+              <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all">
+                Inspections
+              </div>
+              <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all">
+                Routes
+              </div>
+              <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all">
+                Documents
+              </div>
+              <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all">
+                Vehicles
+              </div>
+              <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all">
+                Reports
+              </div>
+            </div>
+          </nav>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex flex-1 flex-col lg:pl-64">
+        {/* Top Header */}
+        <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 professional-header">
+          <div className="flex items-center justify-between px-4 lg:px-6 py-4">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-gray-900">{driver?.name || currentUser?.name}</h1>
-              <div className="flex items-center space-x-2 text-gray-500">
-                <Trophy className="w-4 h-4" />
-                <Mail className="w-4 h-4" />
-                <Settings className="w-4 h-4" />
+              {/* Mobile menu button */}
+              <button 
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              
+              <div>
+                <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+                  Welcome, {driver?.name || currentUser?.name}
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {currentUser?.role === 'driver' ? 'Driver Dashboard' : 'Admin Dashboard'}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+                <Trophy className="w-5 h-5" />
+                <Mail className="w-5 h-5" />
+                <Settings className="w-5 h-5" />
               </div>
             </div>
           </div>
-        </div>
-        
-        <div className="p-6 max-w-md mx-auto">
-          {/* Status Section with Dropdown for Drivers */}
-          <Card className="mb-6">
-            <CardContent className="p-4">
-              {currentUser?.role === 'driver' ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-8 bg-gray-600 rounded text-white text-xs flex items-center justify-center font-bold">
-                      OFF
+        </header>
+
+        {/* Main Dashboard Content */}
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+          <div className="p-4 lg:p-6">
+            {/* Status and Info Cards Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6">
+              {/* Driver Status Card */}
+              <Card className="lg:col-span-1 card-hover transition-all">
+                <CardContent className="p-4 lg:p-6">
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Driver Status</h3>
+                  {currentUser?.role === 'driver' ? (
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-8 bg-gray-600 rounded text-white text-xs flex items-center justify-center font-bold">
+                        {driver?.status === 'off_duty' ? 'OFF' : 
+                         driver?.status === 'on_duty' ? 'ON' : 
+                         driver?.status === 'driving' ? 'DRV' : 'SLP'}
+                      </div>
+                      <div className="flex-1">
+                        <Select 
+                          value={driver?.status || currentUser?.status || 'off_duty'} 
+                          onValueChange={handleStatusChange}
+                          disabled={updateStatusMutation.isPending}
+                        >
+                          <SelectTrigger className="border-0 shadow-none p-0 h-auto font-medium">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="off_duty">Off Duty</SelectItem>
+                            <SelectItem value="on_duty">On Duty</SelectItem>
+                            <SelectItem value="driving">Driving</SelectItem>
+                            <SelectItem value="sleeper">Sleeper</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          {driver?.status !== 'off_duty' ? formatTimer(dutyTimer) : 'Off duty'}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <Select 
-                        value={driver?.status || currentUser?.status || 'off_duty'} 
-                        onValueChange={handleStatusChange}
-                        disabled={updateStatusMutation.isPending}
-                      >
-                        <SelectTrigger className="w-[140px] border-0 shadow-none p-0 h-auto">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="off_duty">Off Duty</SelectItem>
-                          <SelectItem value="on_duty">On Duty</SelectItem>
-                          <SelectItem value="driving">Driving</SelectItem>
-                          <SelectItem value="sleeper">Sleeper</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div className="text-sm text-gray-500">
-                        {driver?.status !== 'off_duty' ? formatTimer(dutyTimer) : '(00:21)'}
+                  ) : (
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-8 bg-gray-600 rounded text-white text-xs flex items-center justify-center font-bold">
+                        {driver?.status === 'off_duty' ? 'OFF' : 
+                         driver?.status === 'on_duty' ? 'ON' : 
+                         driver?.status === 'driving' ? 'DRV' : 'SLP'}
+                      </div>
+                      <div>
+                        <div className="font-medium capitalize text-gray-900 dark:text-white">
+                          {(driver?.status || currentUser?.status || 'off_duty').replace('_', ' ')}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {driver?.status !== 'off_duty' ? formatTimer(dutyTimer) : 'Off duty'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Vehicle Info Card */}
+              <Card className="lg:col-span-2 card-hover transition-all">
+                <CardContent className="p-4 lg:p-6">
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Current Assignment</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="text-center sm:text-left">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Vehicle</div>
+                      <div className="text-xl font-bold text-gray-900 dark:text-white">
+                        {dashboardData?.currentVehicle?.vehicleNumber || '25'}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {dashboardData?.currentVehicle?.make} {dashboardData?.currentVehicle?.model}
+                      </div>
+                    </div>
+                    
+                    <div className="text-center sm:text-left">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Trailer</div>
+                      <div className="text-xl font-bold text-gray-900 dark:text-white">
+                        {dashboardData?.currentTrailer?.trailerNumber || '00'}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {dashboardData?.currentTrailer?.type}
+                      </div>
+                    </div>
+                    
+                    <div className="text-center sm:text-left">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Load ID</div>
+                      <div className="text-xl font-bold text-gray-900 dark:text-white">
+                        {dashboardData?.currentShipment?.shippingId || '3-86539'}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {dashboardData?.currentShipment?.origin} → {dashboardData?.currentShipment?.destination}
                       </div>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400" />
-                </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-8 bg-gray-600 rounded text-white text-xs flex items-center justify-center font-bold">
-                      {driver?.status === 'off_duty' ? 'OFF' : 
-                       driver?.status === 'on_duty' ? 'ON' : 
-                       driver?.status === 'driving' ? 'DRV' : 'SLP'}
-                    </div>
-                    <div>
-                      <div className="font-medium capitalize">
-                        {(driver?.status || currentUser?.status || 'off_duty').replace('_', ' ')}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {driver?.status !== 'off_duty' ? formatTimer(dutyTimer) : '(00:21)'}
-                      </div>
-                    </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Action Modules Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6">
+              {/* HoS - Blue */}
+              <Card className="bg-blue-600 text-white hover:bg-blue-700 cursor-pointer transition-colors group">
+                <CardContent className="p-4 lg:p-6 flex flex-col items-center justify-center text-center h-24 lg:h-32">
+                  <Clock className="w-6 h-6 lg:w-8 lg:h-8 mb-2 group-hover:scale-110 transition-transform" />
+                  <span className="font-semibold text-sm lg:text-base">HoS</span>
+                </CardContent>
+              </Card>
+
+              {/* DVIR - Green */}
+              <Card className="bg-green-500 text-white hover:bg-green-600 cursor-pointer transition-colors group">
+                <CardContent className="p-4 lg:p-6 flex flex-col items-center justify-center text-center h-24 lg:h-32">
+                  <Clipboard className="w-6 h-6 lg:w-8 lg:h-8 mb-2 group-hover:scale-110 transition-transform" />
+                  <span className="font-semibold text-sm lg:text-base">DVIR</span>
+                </CardContent>
+              </Card>
+
+              {/* Routes - Red */}
+              <Card className="bg-red-500 text-white hover:bg-red-600 cursor-pointer transition-colors group">
+                <CardContent className="p-4 lg:p-6 flex flex-col items-center justify-center text-center h-24 lg:h-32">
+                  <MapPin className="w-6 h-6 lg:w-8 lg:h-8 mb-2 group-hover:scale-110 transition-transform" />
+                  <span className="font-semibold text-sm lg:text-base">Routes</span>
+                </CardContent>
+              </Card>
+
+              {/* Documents - Purple */}
+              <Card className="bg-purple-600 text-white hover:bg-purple-700 cursor-pointer transition-colors group">
+                <CardContent className="p-4 lg:p-6 flex flex-col items-center justify-center text-center h-24 lg:h-32">
+                  <FileText className="w-6 h-6 lg:w-8 lg:h-8 mb-2 group-hover:scale-110 transition-transform" />
+                  <span className="font-semibold text-sm lg:text-base">Documents</span>
+                </CardContent>
+              </Card>
+
+              {/* Vehicle - Orange */}
+              <Card className="bg-orange-500 text-white hover:bg-orange-600 cursor-pointer transition-colors group">
+                <CardContent className="p-4 lg:p-6 flex flex-col items-center justify-center text-center h-24 lg:h-32">
+                  <Car className="w-6 h-6 lg:w-8 lg:h-8 mb-2 group-hover:scale-110 transition-transform" />
+                  <span className="font-semibold text-sm lg:text-base">Vehicle</span>
+                </CardContent>
+              </Card>
+
+              {/* Driving Team - Gray */}
+              <Card className="bg-gray-500 text-white hover:bg-gray-600 cursor-pointer transition-colors group">
+                <CardContent className="p-4 lg:p-6 flex flex-col items-center justify-center text-center h-24 lg:h-32">
+                  <Users className="w-6 h-6 lg:w-8 lg:h-8 mb-2 group-hover:scale-110 transition-transform" />
+                  <div className="text-xs lg:text-sm font-semibold">
+                    <div>Driving</div>
+                    <div>Team</div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400" />
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </div>
 
-          {/* Vehicle and Trailer Info */}
-          <Card className="mb-6">
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Vehicle</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-semibold">
-                      {dashboardData?.currentVehicle?.vehicleNumber || '25'}
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
+            {/* Statistics Cards Row */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mt-6">
+              <Card className="card-hover transition-all">
+                <CardContent className="p-4 lg:p-6">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{metrics?.onTimeDeliveries || 94}%</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">On-time</div>
                   </div>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Trailer</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-semibold">
-                      {dashboardData?.currentTrailer?.trailerNumber || '00'}
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                </CardContent>
+              </Card>
+
+              <Card className="card-hover transition-all">
+                <CardContent className="p-4 lg:p-6">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{metrics?.fuelEfficiency || 8.7} MPG</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Fuel Avg</div>
                   </div>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Shipping IDs</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-semibold">
-                      {dashboardData?.currentShipment?.shippingId || '3-86539'}
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                </CardContent>
+              </Card>
+
+              <Card className="card-hover transition-all">
+                <CardContent className="p-4 lg:p-6">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{metrics?.safetyScore || 98}%</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Safety</div>
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
 
-          {/* Action Modules Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* HoS - Blue */}
-            <Card className="bg-blue-600 text-white hover:bg-blue-700 cursor-pointer transition-colors">
-              <CardContent className="p-6 flex flex-col items-center justify-center text-center h-32">
-                <Clock className="w-8 h-8 mb-2" />
-                <span className="font-semibold">HoS</span>
-              </CardContent>
-            </Card>
-
-            {/* DVIR - Green */}
-            <Card className="bg-green-500 text-white hover:bg-green-600 cursor-pointer transition-colors">
-              <CardContent className="p-6 flex flex-col items-center justify-center text-center h-32">
-                <Clipboard className="w-8 h-8 mb-2" />
-                <span className="font-semibold">DVIR</span>
-              </CardContent>
-            </Card>
-
-            {/* Routes - Red */}
-            <Card className="bg-red-500 text-white hover:bg-red-600 cursor-pointer transition-colors">
-              <CardContent className="p-6 flex flex-col items-center justify-center text-center h-32">
-                <MapPin className="w-8 h-8 mb-2" />
-                <span className="font-semibold">Routes</span>
-              </CardContent>
-            </Card>
-
-            {/* Documents - Purple */}
-            <Card className="bg-purple-600 text-white hover:bg-purple-700 cursor-pointer transition-colors">
-              <CardContent className="p-6 flex flex-col items-center justify-center text-center h-32">
-                <FileText className="w-8 h-8 mb-2" />
-                <span className="font-semibold">Documents</span>
-              </CardContent>
-            </Card>
-
-            {/* Vehicle - Orange */}
-            <Card className="bg-orange-500 text-white hover:bg-orange-600 cursor-pointer transition-colors">
-              <CardContent className="p-6 flex flex-col items-center justify-center text-center h-32">
-                <Car className="w-8 h-8 mb-2" />
-                <span className="font-semibold">Vehicle</span>
-              </CardContent>
-            </Card>
-
-            {/* Driving Team - Gray */}
-            <Card className="bg-gray-500 text-white hover:bg-gray-600 cursor-pointer transition-colors">
-              <CardContent className="p-6 flex flex-col items-center justify-center text-center h-32">
-                <Users className="w-8 h-8 mb-2" />
-                <div className="text-sm">
-                  <div>Driving</div>
-                  <div>Team</div>
-                </div>
-              </CardContent>
-            </Card>
+              <Card className="card-hover transition-all">
+                <CardContent className="p-4 lg:p-6">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{metrics?.hosCompliance || 100}%</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">HoS Compliance</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
