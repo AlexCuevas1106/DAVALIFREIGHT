@@ -46,6 +46,13 @@ export default function Dashboard() {
     return localStorage.getItem("hasShownWelcome") === "true";
   });
 
+  // Timer state for duty status
+  const [dutyTimer, setDutyTimer] = useState(0);
+  
+  // Always call hooks before any early returns
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   // Show welcome animation when user first loads dashboard
   useEffect(() => {
     if (currentUser && !authLoading && !hasShownWelcome) {
@@ -77,69 +84,19 @@ export default function Dashboard() {
     staleTime: 30000,
   });
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div>No user found - please login</div>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading dashboard...</div>
-      </div>
-    );
-  }
-
-  if (!dashboardData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg text-red-600">Failed to load dashboard data</div>
-      </div>
-    );
-  }
-
-  const { driver, metrics } = dashboardData;
-
-  // Show welcome animation
-  if (showWelcome) {
-    return (
-      <WelcomeAnimation 
-        user={currentUser} 
-        onComplete={() => setShowWelcome(false)} 
-      />
-    );
-  }
-
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  // Timer state for duty status
-  const [dutyTimer, setDutyTimer] = useState(0);
-  
   // Update duty timer
   useEffect(() => {
-    if (driver?.status !== 'off_duty' && driver?.dutyStartTime) {
+    if (dashboardData?.driver?.status !== 'off_duty' && dashboardData?.driver?.dutyStartTime) {
       const interval = setInterval(() => {
         const now = new Date().getTime();
-        const startTime = new Date(driver.dutyStartTime!).getTime();
+        const startTime = new Date(dashboardData.driver.dutyStartTime!).getTime();
         const elapsedSeconds = Math.floor((now - startTime) / 1000);
         setDutyTimer(elapsedSeconds);
       }, 1000);
       
       return () => clearInterval(interval);
     }
-  }, [driver?.status, driver?.dutyStartTime]);
+  }, [dashboardData?.driver?.status, dashboardData?.driver?.dutyStartTime]);
   
   // Format timer display
   const formatTimer = (seconds: number) => {
@@ -185,6 +142,51 @@ export default function Dashboard() {
   const handleStatusChange = (newStatus: string) => {
     updateStatusMutation.mutate(newStatus);
   };
+
+  // Early returns after all hooks are called
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div>No user found - please login</div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading dashboard...</div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-red-600">Failed to load dashboard data</div>
+      </div>
+    );
+  }
+
+  const { driver, metrics } = dashboardData;
+
+  // Show welcome animation
+  if (showWelcome) {
+    return (
+      <WelcomeAnimation 
+        user={currentUser} 
+        onComplete={() => setShowWelcome(false)} 
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

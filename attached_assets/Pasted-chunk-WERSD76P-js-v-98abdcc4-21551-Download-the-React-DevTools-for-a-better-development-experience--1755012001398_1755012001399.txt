@@ -1,0 +1,114 @@
+chunk-WERSD76P.js?v=98abdcc4:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+useAuth.ts:30 useAuth - user: undefined isLoading: true error: null
+useAuth.ts:30 useAuth - user: undefined isLoading: true error: null
+App.tsx:36 ProtectedRoute - isAuthenticated: false isLoading: true user: undefined
+useAuth.ts:30 useAuth - user: Object isLoading: false error: null
+useAuth.ts:30 useAuth - user: Object isLoading: false error: null
+useAuth.ts:30 useAuth - user: Object isLoading: false error: null
+App.tsx:36 ProtectedRoute - isAuthenticated: true isLoading: false user: Object
+useAuth.ts:30 useAuth - user: Object isLoading: false error: null
+useAuth.ts:30 useAuth - user: Object isLoading: false error: null
+useAuth.ts:30 useAuth - user: Object isLoading: false error: null
+useAuth.ts:30 useAuth - user: Object isLoading: false error: null
+App.tsx:36 ProtectedRoute - isAuthenticated: true isLoading: false user: Object
+useAuth.ts:30 useAuth - user: Object isLoading: false error: null
+useAuth.ts:30 useAuth - user: Object isLoading: false error: null
+chunk-WERSD76P.js?v=98abdcc4:521 Warning: React has detected a change in the order of Hooks called by Dashboard. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://reactjs.org/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+1. useContext                 useContext
+2. useSyncExternalStore       useSyncExternalStore
+3. useRef                     useRef
+4. useInsertionEffect         useInsertionEffect
+5. useContext                 useContext
+6. useContext                 useContext
+7. useContext                 useContext
+8. useEffect                  useEffect
+9. useState                   useState
+10. useCallback               useCallback
+11. useSyncExternalStore      useSyncExternalStore
+12. useEffect                 useEffect
+13. useContext                useContext
+14. useState                  useState
+15. useEffect                 useEffect
+16. useCallback               useCallback
+17. useSyncExternalStore      useSyncExternalStore
+18. useCallback               useCallback
+19. useState                  useState
+20. useState                  useState
+21. useEffect                 useEffect
+22. useContext                useContext
+23. useContext                useContext
+24. useContext                useContext
+25. useEffect                 useEffect
+26. useState                  useState
+27. useCallback               useCallback
+28. useSyncExternalStore      useSyncExternalStore
+29. useEffect                 useEffect
+30. undefined                 useState
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    at Dashboard (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/src/pages/dashboard-simple.tsx:28:57)
+    at ProtectedRoute (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/src/App.tsx?v=XAOHm-2AvMeEHfOoIYcKj:45:27)
+    at Route (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=98abdcc4:323:16)
+    at Switch (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=98abdcc4:379:17)
+    at div
+    at Provider (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-BCLB22GG.js?v=98abdcc4:22:15)
+    at TooltipProvider (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=98abdcc4:61:5)
+    at AppContent (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/src/App.tsx?v=XAOHm-2AvMeEHfOoIYcKj:111:31)
+    at QueryClientProvider (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=98abdcc4:2805:3)
+    at App
+printWarning @ chunk-WERSD76P.js?v=98abdcc4:521
+useAuth.ts:30 useAuth - user: Object isLoading: false error: null
+chunk-WERSD76P.js?v=98abdcc4:11678 Uncaught Error: Rendered more hooks than during the previous render.
+    at updateWorkInProgressHook (chunk-WERSD76P.js?v=98abdcc4:11678:21)
+    at updateReducer (chunk-WERSD76P.js?v=98abdcc4:11727:22)
+    at updateState (chunk-WERSD76P.js?v=98abdcc4:12021:18)
+    at Object.useState (chunk-WERSD76P.js?v=98abdcc4:12753:24)
+    at Object.useState (chunk-3TFVT2CW.js?v=98abdcc4:1066:29)
+    at useToast (use-toast.ts:172:35)
+    at Dashboard (dashboard-simple.tsx:124:21)
+    at renderWithHooks (chunk-WERSD76P.js?v=98abdcc4:11548:26)
+    at updateFunctionComponent (chunk-WERSD76P.js?v=98abdcc4:14582:28)
+    at beginWork (chunk-WERSD76P.js?v=98abdcc4:15924:22)
+useAuth.ts:30 useAuth - user: Object isLoading: false error: null
+useAuth.ts:30 useAuth - user: Object isLoading: false error: null
+chunk-WERSD76P.js?v=98abdcc4:11678 Uncaught Error: Rendered more hooks than during the previous render.
+    at updateWorkInProgressHook (chunk-WERSD76P.js?v=98abdcc4:11678:21)
+    at updateReducer (chunk-WERSD76P.js?v=98abdcc4:11727:22)
+    at updateState (chunk-WERSD76P.js?v=98abdcc4:12021:18)
+    at Object.useState (chunk-WERSD76P.js?v=98abdcc4:12753:24)
+    at Object.useState (chunk-3TFVT2CW.js?v=98abdcc4:1066:29)
+    at useToast (use-toast.ts:172:35)
+    at Dashboard (dashboard-simple.tsx:124:21)
+    at renderWithHooks (chunk-WERSD76P.js?v=98abdcc4:11548:26)
+    at updateFunctionComponent (chunk-WERSD76P.js?v=98abdcc4:14582:28)
+    at beginWork (chunk-WERSD76P.js?v=98abdcc4:15924:22)
+chunk-WERSD76P.js?v=98abdcc4:14032 The above error occurred in the <Dashboard> component:
+
+    at Dashboard (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/src/pages/dashboard-simple.tsx:28:57)
+    at ProtectedRoute (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/src/App.tsx?v=XAOHm-2AvMeEHfOoIYcKj:45:27)
+    at Route (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=98abdcc4:323:16)
+    at Switch (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=98abdcc4:379:17)
+    at div
+    at Provider (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-BCLB22GG.js?v=98abdcc4:22:15)
+    at TooltipProvider (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=98abdcc4:61:5)
+    at AppContent (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/src/App.tsx?v=XAOHm-2AvMeEHfOoIYcKj:111:31)
+    at QueryClientProvider (https://56740d86-083a-42cb-80f6-392ad5978d5a-00-37ovlata3qant.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=98abdcc4:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-WERSD76P.js?v=98abdcc4:14032
+chunk-WERSD76P.js?v=98abdcc4:9129 Uncaught Error: Rendered more hooks than during the previous render.
+    at updateWorkInProgressHook (chunk-WERSD76P.js?v=98abdcc4:11678:21)
+    at updateReducer (chunk-WERSD76P.js?v=98abdcc4:11727:22)
+    at updateState (chunk-WERSD76P.js?v=98abdcc4:12021:18)
+    at Object.useState (chunk-WERSD76P.js?v=98abdcc4:12753:24)
+    at Object.useState (chunk-3TFVT2CW.js?v=98abdcc4:1066:29)
+    at useToast (use-toast.ts:172:35)
+    at Dashboard (dashboard-simple.tsx:124:21)
+    at renderWithHooks (chunk-WERSD76P.js?v=98abdcc4:11548:26)
+    at updateFunctionComponent (chunk-WERSD76P.js?v=98abdcc4:14582:28)
+    at beginWork (chunk-WERSD76P.js?v=98abdcc4:15924:22)
