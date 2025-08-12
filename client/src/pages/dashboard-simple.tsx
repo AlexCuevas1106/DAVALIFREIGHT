@@ -9,6 +9,7 @@ import { WelcomeAnimation } from "@/components/welcome-animation";
 import { Clock, FileText, MapPin, Car, Users, Clipboard, ChevronRight, Trophy, Mail, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 interface DashboardData {
   driver: {
@@ -55,6 +56,7 @@ export default function Dashboard() {
   // Always call hooks before any early returns
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   // Show welcome animation when user first loads dashboard
   useEffect(() => {
@@ -146,6 +148,11 @@ export default function Dashboard() {
     updateStatusMutation.mutate(newStatus);
   };
 
+  // Navigation function for dashboard modules
+  const navigateToModule = (path: string) => {
+    setLocation(path);
+  };
+
   // Early returns after all hooks are called
   if (authLoading) {
     return (
@@ -193,26 +200,29 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 desktop-app">
-      {/* Mobile Sidebar Overlay */}
+      {/* Mobile Sidebar Overlay - Completely Floating */}
       {isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 z-50 lg:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        >
-          <div className="absolute inset-0 bg-gray-900 opacity-50"></div>
-          <aside className="relative w-64 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
-            <div className="flex flex-col flex-grow">
-              {/* Logo/Company Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <>
+          {/* Background overlay */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          ></div>
+          
+          {/* Floating sidebar */}
+          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-gray-800 shadow-2xl lg:hidden transform transition-transform duration-300 ease-in-out">
+            <div className="flex flex-col h-full">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-blue-700">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">D</span>
+                  <div className="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">D</span>
                   </div>
-                  <span className="text-xl font-bold text-gray-900 dark:text-white">Davali Fleet</span>
+                  <span className="text-xl font-bold text-white">Davali Fleet</span>
                 </div>
                 <button 
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="p-2 rounded-md text-white hover:bg-white hover:bg-opacity-20 transition-colors"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -221,34 +231,76 @@ export default function Dashboard() {
               </div>
               
               {/* Navigation */}
-              <nav className="flex-1 px-4 py-6">
-                <div className="space-y-2">
-                  <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg font-medium">
-                    Dashboard
+              <nav className="flex-1 px-6 py-6 overflow-y-auto">
+                <div className="space-y-3">
+                  <div className="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-xl font-medium text-center">
+                    📊 Dashboard
                   </div>
-                  <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
-                    Hours of Service
-                  </div>
-                  <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
-                    Inspections
-                  </div>
-                  <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
-                    Routes
-                  </div>
-                  <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
-                    Documents
-                  </div>
-                  <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
-                    Vehicles
-                  </div>
-                  <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
-                    Reports
-                  </div>
+                  <button 
+                    onClick={() => {
+                      navigateToModule('/hours-of-service');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full px-4 py-3 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors flex items-center space-x-3"
+                  >
+                    <Clock className="w-5 h-5" />
+                    <span>Hours of Service</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                      navigateToModule('/inspection');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full px-4 py-3 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors flex items-center space-x-3"
+                  >
+                    <Clipboard className="w-5 h-5" />
+                    <span>Inspections</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                      navigateToModule('/routes');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full px-4 py-3 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors flex items-center space-x-3"
+                  >
+                    <MapPin className="w-5 h-5" />
+                    <span>Routes</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                      navigateToModule('/documents');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full px-4 py-3 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors flex items-center space-x-3"
+                  >
+                    <FileText className="w-5 h-5" />
+                    <span>Documents</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                      navigateToModule('/vehicles');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full px-4 py-3 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors flex items-center space-x-3"
+                  >
+                    <Car className="w-5 h-5" />
+                    <span>Vehicles</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                      navigateToModule('/driving-team');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full px-4 py-3 text-left text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors flex items-center space-x-3"
+                  >
+                    <Users className="w-5 h-5" />
+                    <span>Driving Team</span>
+                  </button>
                 </div>
               </nav>
             </div>
-          </aside>
-        </div>
+          </div>
+        </>
       )}
 
       {/* Desktop Sidebar - Hidden on mobile */}
@@ -270,24 +322,42 @@ export default function Dashboard() {
               <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg font-medium transition-all">
                 Dashboard
               </div>
-              <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all">
+              <button 
+                onClick={() => navigateToModule('/hours-of-service')}
+                className="w-full text-left px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all"
+              >
                 Hours of Service
-              </div>
-              <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all">
+              </button>
+              <button 
+                onClick={() => navigateToModule('/inspection')}
+                className="w-full text-left px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all"
+              >
                 Inspections
-              </div>
-              <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all">
+              </button>
+              <button 
+                onClick={() => navigateToModule('/routes')}
+                className="w-full text-left px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all"
+              >
                 Routes
-              </div>
-              <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all">
+              </button>
+              <button 
+                onClick={() => navigateToModule('/documents')}
+                className="w-full text-left px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all"
+              >
                 Documents
-              </div>
-              <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all">
+              </button>
+              <button 
+                onClick={() => navigateToModule('/vehicles')}
+                className="w-full text-left px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all"
+              >
                 Vehicles
-              </div>
-              <div className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all">
-                Reports
-              </div>
+              </button>
+              <button 
+                onClick={() => navigateToModule('/driving-team')}
+                className="w-full text-left px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all"
+              >
+                Driving Team
+              </button>
             </div>
           </nav>
         </div>
@@ -428,7 +498,7 @@ export default function Dashboard() {
             {/* Action Modules Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6">
               {/* HoS - Blue */}
-              <Card className="bg-blue-600 text-white hover:bg-blue-700 cursor-pointer transition-colors group">
+              <Card className="bg-blue-600 text-white hover:bg-blue-700 cursor-pointer transition-colors group" onClick={() => navigateToModule('/hours-of-service')}>
                 <CardContent className="p-4 lg:p-6 flex flex-col items-center justify-center text-center h-24 lg:h-32">
                   <Clock className="w-6 h-6 lg:w-8 lg:h-8 mb-2 group-hover:scale-110 transition-transform" />
                   <span className="font-semibold text-sm lg:text-base">HoS</span>
@@ -436,7 +506,7 @@ export default function Dashboard() {
               </Card>
 
               {/* DVIR - Green */}
-              <Card className="bg-green-500 text-white hover:bg-green-600 cursor-pointer transition-colors group">
+              <Card className="bg-green-500 text-white hover:bg-green-600 cursor-pointer transition-colors group" onClick={() => navigateToModule('/inspection')}>
                 <CardContent className="p-4 lg:p-6 flex flex-col items-center justify-center text-center h-24 lg:h-32">
                   <Clipboard className="w-6 h-6 lg:w-8 lg:h-8 mb-2 group-hover:scale-110 transition-transform" />
                   <span className="font-semibold text-sm lg:text-base">DVIR</span>
@@ -444,7 +514,7 @@ export default function Dashboard() {
               </Card>
 
               {/* Routes - Red */}
-              <Card className="bg-red-500 text-white hover:bg-red-600 cursor-pointer transition-colors group">
+              <Card className="bg-red-500 text-white hover:bg-red-600 cursor-pointer transition-colors group" onClick={() => navigateToModule('/routes')}>
                 <CardContent className="p-4 lg:p-6 flex flex-col items-center justify-center text-center h-24 lg:h-32">
                   <MapPin className="w-6 h-6 lg:w-8 lg:h-8 mb-2 group-hover:scale-110 transition-transform" />
                   <span className="font-semibold text-sm lg:text-base">Routes</span>
@@ -452,7 +522,7 @@ export default function Dashboard() {
               </Card>
 
               {/* Documents - Purple */}
-              <Card className="bg-purple-600 text-white hover:bg-purple-700 cursor-pointer transition-colors group">
+              <Card className="bg-purple-600 text-white hover:bg-purple-700 cursor-pointer transition-colors group" onClick={() => navigateToModule('/documents')}>
                 <CardContent className="p-4 lg:p-6 flex flex-col items-center justify-center text-center h-24 lg:h-32">
                   <FileText className="w-6 h-6 lg:w-8 lg:h-8 mb-2 group-hover:scale-110 transition-transform" />
                   <span className="font-semibold text-sm lg:text-base">Documents</span>
@@ -460,7 +530,7 @@ export default function Dashboard() {
               </Card>
 
               {/* Vehicle - Orange */}
-              <Card className="bg-orange-500 text-white hover:bg-orange-600 cursor-pointer transition-colors group">
+              <Card className="bg-orange-500 text-white hover:bg-orange-600 cursor-pointer transition-colors group" onClick={() => navigateToModule('/vehicles')}>
                 <CardContent className="p-4 lg:p-6 flex flex-col items-center justify-center text-center h-24 lg:h-32">
                   <Car className="w-6 h-6 lg:w-8 lg:h-8 mb-2 group-hover:scale-110 transition-transform" />
                   <span className="font-semibold text-sm lg:text-base">Vehicle</span>
@@ -468,7 +538,7 @@ export default function Dashboard() {
               </Card>
 
               {/* Driving Team - Gray */}
-              <Card className="bg-gray-500 text-white hover:bg-gray-600 cursor-pointer transition-colors group">
+              <Card className="bg-gray-500 text-white hover:bg-gray-600 cursor-pointer transition-colors group" onClick={() => navigateToModule('/driving-team')}>
                 <CardContent className="p-4 lg:p-6 flex flex-col items-center justify-center text-center h-24 lg:h-32">
                   <Users className="w-6 h-6 lg:w-8 lg:h-8 mb-2 group-hover:scale-110 transition-transform" />
                   <div className="text-xs lg:text-sm font-semibold">

@@ -11,6 +11,9 @@ import Dashboard from "@/pages/dashboard-simple";
 import Documents from "@/pages/documents";
 import ExpensesReport from "@/pages/expenses-report";
 import Routes from "@/pages/routes";
+import HoursOfService from "@/pages/hours-of-service";
+import Vehicles from "@/pages/vehicles";
+import DrivingTeam from "@/pages/driving-team";
 import Inspection from "@/pages/inspection";
 import InspectionHistory from "@/pages/inspection-history";
 import Login from "@/pages/login";
@@ -116,6 +119,30 @@ function AppContent() {
           <Route path="/inspection-history">
             <ProtectedRoute>
               <InspectionHistory />
+            </ProtectedRoute>
+          </Route>
+
+          <Route path="/dashboard">
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          </Route>
+          
+          <Route path="/hours-of-service">
+            <ProtectedRoute>
+              <HoursOfService />
+            </ProtectedRoute>
+          </Route>
+
+          <Route path="/vehicles">
+            <ProtectedRoute>
+              <Vehicles />
+            </ProtectedRoute>
+          </Route>
+
+          <Route path="/driving-team">
+            <ProtectedRoute>
+              <DrivingTeam />
             </ProtectedRoute>
           </Route>
           
