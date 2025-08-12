@@ -248,6 +248,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/drivers/:id/status", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      // Validate status
+      const validStatuses = ['off_duty', 'on_duty', 'driving', 'sleeper'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+
+      // Check if user can update this driver's status
+      const user = (req as any).user;
+      if (user.role !== 'admin' && user.id !== id) {
+        return res.status(403).json({ message: "Unauthorized to update this driver's status" });
+      }
+
+      const updateData: any = { status };
+      
+      // If going on duty, set duty start time
+      if (status !== 'off_duty') {
+        updateData.dutyStartTime = new Date();
+      } else {
+        updateData.dutyStartTime = null;
+      }
+
+      const driver = await storage.updateDriver(id, updateData);
+      if (!driver) {
+        return res.status(404).json({ message: "Driver not found" });
+      }
+      
+      res.json(driver);
+    } catch (error) {
+      console.error("Error updating driver status:", error);
+      res.status(500).json({ message: "Failed to update driver status" });
+    }
+  });
+
   // Vehicle routes
   app.get("/api/vehicles", requireAuth, async (req, res) => {
     try {
