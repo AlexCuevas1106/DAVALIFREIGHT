@@ -1,37 +1,27 @@
-
 import { Switch, Route, Redirect } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { Sidebar } from "@/components/sidebar";
-import { useAuth } from "@/hooks/useAuth";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/queryClient";
+import { Toaster } from "./components/ui/toaster";
+import { TooltipProvider } from "./components/ui/tooltip";
+import { SidebarProvider, Sidebar } from "./components/ui/sidebar";
+import { useAuth } from "./hooks/useAuth";
 
 // Pages
-import Dashboard from "@/pages/dashboard-simple";
-import Documents from "@/pages/documents";
-import ExpensesReport from "@/pages/expenses-report";
-import Routes from "@/pages/routes";
-import HoursOfService from "@/pages/hours-of-service";
-import Vehicles from "@/pages/vehicles";
-import DrivingTeam from "@/pages/driving-team";
-import Inspection from "@/pages/inspection";
-import InspectionHistory from "@/pages/inspection-history";
-import Login from "@/pages/login";
-import NotFound from "@/pages/not-found";
+import Dashboard from "./pages/dashboard-simple";
+import Documents from "./pages/documents";
+import ExpensesReport from "./pages/expenses-report";
+import Routes from "./pages/routes";
+import Inspection from "./pages/inspection";
+import InspectionHistory from "./pages/inspection-history";
+import Login from "./pages/login";
+import NotFound from "./pages/not-found";
+import VehiclesPage from "./pages/vehicles";
+import AddTruckPage from "./pages/add-truck";
+import AddCajaPage from "./pages/add-caja";
+import DriversPage from "./pages/drivers";
 
 import "./index.css";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: (failureCount, error: any) => {
-        if (error?.status === 401) return false;
-        return failureCount < 3;
-      },
-    },
-  },
-});
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -74,85 +64,77 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
-
   return (
-    <TooltipProvider>
-      <div className="min-h-screen bg-gray-50">
-        {isAuthenticated && <Sidebar />}
-        <Switch>
-          <Route path="/login">
-            <AuthRoute>
-              <Login />
-            </AuthRoute>
-          </Route>
-          
-          <Route path="/">
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          </Route>
-          
-          <Route path="/documents">
-            <ProtectedRoute>
-              <Documents />
-            </ProtectedRoute>
-          </Route>
-          
-          <Route path="/expenses-report">
-            <ProtectedRoute>
-              <ExpensesReport />
-            </ProtectedRoute>
-          </Route>
-          
-          <Route path="/routes">
-            <ProtectedRoute>
-              <Routes />
-            </ProtectedRoute>
-          </Route>
-          
-          <Route path="/inspection">
-            <ProtectedRoute>
-              <Inspection />
-            </ProtectedRoute>
-          </Route>
-          
-          <Route path="/inspection-history">
-            <ProtectedRoute>
-              <InspectionHistory />
-            </ProtectedRoute>
-          </Route>
-
-          <Route path="/dashboard">
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          </Route>
-          
-          <Route path="/hours-of-service">
-            <ProtectedRoute>
-              <HoursOfService />
-            </ProtectedRoute>
-          </Route>
-
-          <Route path="/vehicles">
-            <ProtectedRoute>
-              <Vehicles />
-            </ProtectedRoute>
-          </Route>
-
-          <Route path="/driving-team">
-            <ProtectedRoute>
-              <DrivingTeam />
-            </ProtectedRoute>
-          </Route>
-          
-          <Route>
-            <NotFound />
-          </Route>
-        </Switch>
-        <Toaster />
-      </div>
-    </TooltipProvider>
+    <SidebarProvider>
+      <TooltipProvider>
+        <div className="min-h-screen bg-white">
+          {isAuthenticated && <Sidebar />}
+          <main className={`w-full transition-all duration-300 ${isAuthenticated ? 'lg:ml-64' : ''}`}>
+            <Switch>
+              <Route path="/login">
+                <AuthRoute>
+                  <Login />
+                </AuthRoute>
+              </Route>
+              <Route path="/">
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/documents">
+                <ProtectedRoute>
+                  <Documents />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/drivers">
+                <ProtectedRoute>
+                  <DriversPage />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/expenses-report">
+                <ProtectedRoute>
+                  <ExpensesReport />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/routes">
+                <ProtectedRoute>
+                  <Routes />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/inspection">
+                <ProtectedRoute>
+                  <Inspection />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/inspection-history">
+                <ProtectedRoute>
+                  <InspectionHistory />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/vehicles">
+                <ProtectedRoute>
+                  <VehiclesPage />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/vehicles/add-truck">
+                <ProtectedRoute>
+                  <AddTruckPage />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/vehicles/add-caja">
+                <ProtectedRoute>
+                  <AddCajaPage />
+                </ProtectedRoute>
+              </Route>
+              <Route>
+                <NotFound />
+              </Route>
+            </Switch>
+            <Toaster />
+          </main>
+        </div>
+      </TooltipProvider>
+    </SidebarProvider>
   );
 }
 

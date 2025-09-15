@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useAuth } from "@/hooks/useAuth";
+import { cn } from "../lib/utils";
+import { Button } from "../components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
+import { useAuth } from "../hooks/useAuth";
 import { 
   Truck,
   BarChart3,
@@ -39,13 +39,17 @@ export function Sidebar() {
 
   // Full navigation for administrators
   const adminNavigation = [
+    {
+      name: "Vehicles",
+      href: "/vehicles",
+      icon: Truck,
+    },
     { name: "Dashboard", href: "/", icon: BarChart3 },
     { name: "Documents", href: "/documents", icon: Folder },
     { name: "Expenses", href: "/expenses-report", icon: FileText },
     { name: "Routes", href: "/routes", icon: Route },
     { name: "Inspection", href: "/inspection", icon: ClipboardCheck },
     { name: "Inspection History", href: "/inspection-history", icon: History },
-    { name: "Vehicles", href: "/vehicles", icon: Truck },
     { name: "Drivers", href: "/drivers", icon: Users },
     { name: "Shipments", href: "/shipments", icon: Package },
   ];
@@ -64,8 +68,9 @@ export function Sidebar() {
 
   return (
     <aside className={cn(
-      "bg-white shadow-xl border-r border-gray-200 fixed h-full z-10 transition-all duration-300 flex flex-col",
-      isCollapsed ? "w-16" : "w-64"
+      "bg-white border-r border-gray-200 fixed h-full z-20 transition-all duration-300 flex flex-col",
+      isCollapsed ? "w-16" : "w-64",
+      "md:relative md:w-64 md:z-10 md:h-auto md:flex md:flex-col md:border-none"
     )}>
       {/* Header */}
       <div className={cn(
@@ -74,12 +79,12 @@ export function Sidebar() {
       )}>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm">
+            <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center">
               <Truck className="w-6 h-6 text-white" />
             </div>
             {!isCollapsed && (
               <div>
-                <h1 className="text-lg font-bold text-gray-900">Davali Freight</h1>
+                <h1 className="text-lg font-semibold text-gray-900">Davali Freight</h1>
                 <p className="text-xs text-gray-500">Management Portal</p>
               </div>
             )}
@@ -98,6 +103,7 @@ export function Sidebar() {
       {/* Navigation Menu */}
       <nav className={cn("flex-1 overflow-y-auto", isCollapsed ? "px-2" : "px-3")}>
         <div className="py-4 space-y-2">
+          {/* Solo renderiza los items principales */}
           {navigation.map((item) => {
             const isActive = location === item.href;
 
@@ -106,14 +112,12 @@ export function Sidebar() {
                 <Tooltip key={item.name}>
                   <TooltipTrigger asChild>
                     <Link href={item.href}>
-                      <div
-                        className={cn(
-                          "flex items-center justify-center h-10 w-10 rounded-lg transition-all duration-200 mx-auto",
-                          isActive
-                            ? "bg-blue-600 text-white shadow-md"
-                            : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                        )}
-                      >
+                      <div className={cn(
+                        "flex items-center justify-center h-10 w-10 rounded-lg transition-all duration-200 mx-auto",
+                        isActive
+                          ? "bg-blue-600 text-white shadow-md"
+                          : "text-zinc-600 hover:bg-blue-50 hover:text-blue-600"
+                      )}>
                         <item.icon className="w-5 h-5" />
                       </div>
                     </Link>
@@ -126,20 +130,20 @@ export function Sidebar() {
             }
 
             return (
-              <Link key={item.name} href={item.href}>
-                <div
-                  className={cn(
+              <div key={item.name} className="group">
+                <Link href={item.href}>
+                  <div className={cn(
                     "flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group",
                     isActive
                       ? "bg-blue-600 text-white shadow-md"
-                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                  )}
-                >
-                  <item.icon className={cn("w-5 h-5 mr-3 transition-colors", 
-                    isActive ? "text-white" : "text-gray-500 group-hover:text-blue-600")} />
-                  <span className="font-medium text-sm">{item.name}</span>
-                </div>
-              </Link>
+                      : "text-zinc-700 hover:bg-blue-50 hover:text-blue-600"
+                  )}>
+                    <item.icon className={cn("w-5 h-5 mr-3 transition-colors",
+                      isActive ? "text-white" : "text-zinc-500 group-hover:text-blue-600")} />
+                    <span className="font-medium text-sm">{item.name}</span>
+                  </div>
+                </Link>
+              </div>
             );
           })}
         </div>
@@ -154,10 +158,10 @@ export function Sidebar() {
                   <User className="h-4 w-4 text-blue-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-zinc-900 truncate">
                     {user?.name}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-xs text-zinc-500 truncate">
                     {user?.role === 'admin' ? 'Administrador' : 'Chofer'}
                   </p>
                 </div>
@@ -183,7 +187,7 @@ export function Sidebar() {
                 </TooltipTrigger>
                 <TooltipContent side="right">
                   <p>{user?.name}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-zinc-500">
                     {user?.role === 'admin' ? 'Administrador' : 'Chofer'}
                   </p>
                 </TooltipContent>
@@ -210,3 +214,29 @@ export function Sidebar() {
     </aside>
   );
 }
+
+// Ajustar tipo de navigation item:
+type NavigationItem = {
+  name: string;
+  href: string;
+  icon?: any;
+};
+
+// Busca la definición del array de items del sidebar, por ejemplo:
+interface SidebarItem {
+  name: string;
+  href: string;
+  icon: React.ForwardRefExoticComponent<any>;
+}
+
+// Si tienes algo como:
+const sidebarItems: SidebarItem[] = [
+  // ...items...
+];
+
+// En el render:
+// {item.submenu && (
+//   item.submenu.map((subItem: { name: string; href: string }) => (
+//     // ...render subItem...
+//   ))
+// )}
