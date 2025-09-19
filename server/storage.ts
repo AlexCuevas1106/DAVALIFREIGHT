@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "./db.ts";
 import {
   drivers,
   vehicles,
@@ -10,7 +10,10 @@ import {
   activityLogs,
   documentFiles,
   routes,
+  expenseReports,
 } from "@shared/schema";
+import { refacciones } from "../shared/schema-refacciones.ts";
+import type { Refaccion, InsertRefaccion } from "../shared/schema-refacciones.ts";
 import { eq, desc, and } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import type { InsertDriver, InsertVehicle, InsertTrailer, InsertShipment, InsertInspectionReport, InsertDocument, InsertActivityLog, InsertDocumentFile, InsertRoute, RegisterRequest } from "@shared/schema";
@@ -28,6 +31,11 @@ import type {
 } from "@shared/schema";
 
 export interface IStorage {
+  // Refacciones
+  getRefaccionesByVehicle(vehicleId: number): Promise<Refaccion[]>;
+  createRefaccion(refaccion: InsertRefaccion): Promise<Refaccion>;
+  updateRefaccion(id: number, updates: Partial<Refaccion>): Promise<Refaccion | undefined>;
+  deleteRefaccion(id: number): Promise<boolean>;
   // Driver operations
   getDriver(id: number): Promise<Driver | undefined>;
   getDriverByUsername(username: string): Promise<Driver | undefined>;
@@ -45,6 +53,7 @@ export interface IStorage {
   getTrailer(id: number): Promise<Trailer | undefined>;
   getAllTrailers(): Promise<Trailer[]>;
   createTrailer(trailer: InsertTrailer): Promise<Trailer>;
+  updateTrailer(id: number, updates: Partial<Trailer>): Promise<Trailer | undefined>;
 
   // Shipment operations
   getShipment(id: number): Promise<Shipment | undefined>;
@@ -66,10 +75,12 @@ export interface IStorage {
   // Document operations
   getDocuments(shipmentId?: number, driverId?: number): Promise<Document[]>;
   createDocument(document: InsertDocument): Promise<Document>;
+  updateDocument(id: number, updates: Partial<Document>): Promise<Document | undefined>;
 
   // Activity log operations
   getActivityLogs(driverId: number, limit?: number): Promise<ActivityLog[]>;
   createActivityLog(log: InsertActivityLog): Promise<ActivityLog>;
+  updateActivityLog(id: number, updates: Partial<ActivityLog>): Promise<ActivityLog | undefined>;
 
   // Document file operations
   getDocumentFiles(driverId?: number, fileType?: string): Promise<DocumentFile[]>;
@@ -87,6 +98,9 @@ export interface IStorage {
   // Expense Report operations
   createExpenseReport(reportData: any): Promise<any>;
   getExpenseReports(driverId?: number): Promise<any[]>;
+  getExpenseReport(id: number): Promise<any>;
+  updateExpenseReport(id: number, updates: Partial<any>): Promise<any>;
+  deleteExpenseReport(id: number): Promise<boolean>;
 
   // Authentication methods
   authenticateUser(username: string, password: string): Promise<Driver | null>;
@@ -97,6 +111,29 @@ export interface IStorage {
 
 
 export class DatabaseStorage implements IStorage {
+  // Refacciones
+  async getRefaccionesByVehicle(vehicleId: number): Promise<Refaccion[]> {
+    return await db.select().from(refacciones).where(eq(refacciones.vehicleId, vehicleId));
+  }
+
+  async createRefaccion(refaccion: InsertRefaccion): Promise<Refaccion> {
+    const [row] = await db.insert(refacciones).values(refaccion).returning();
+    return row;
+  }
+
+  async updateRefaccion(id: number, updates: Partial<Refaccion>): Promise<Refaccion | undefined> {
+    const [row] = await db.update(refacciones).set(updates).where(eq(refacciones.id, id)).returning();
+    return row || undefined;
+  }
+
+  async deleteRefaccion(id: number): Promise<boolean> {
+    await db.delete(refacciones).where(eq(refacciones.id, id));
+    return true;
+  }
+  async deleteVehicle(id: number): Promise<boolean> {
+    await db.delete(vehicles).where(eq(vehicles.id, id));
+    return true;
+  }
   async getDriver(id: number): Promise<Driver | undefined> {
     const [driver] = await db.select().from(drivers).where(eq(drivers.id, id));
     return driver || undefined;
@@ -114,7 +151,11 @@ export class DatabaseStorage implements IStorage {
   async createDriver(insertDriver: InsertDriver): Promise<Driver> {
     const [driver] = await db
       .insert(drivers)
-      .values(insertDriver)
+      .values({
+        ...insertDriver,
+        createdAt: new Date(),
+        isActive: true,
+      })
       .returning();
     return driver;
   }
@@ -128,9 +169,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateDriver(id: number, updates: Partial<Driver>): Promise<Driver | undefined> {
+    // Obtener el driver actual
+    const [current] = await db.select().from(drivers).where(eq(drivers.id, id));
+    if (!current) return undefined;
+    // Solo actualizar los campos enviados (no sobrescribir con undefined)
+    const filteredUpdates: Partial<Driver> = {};
+    Object.keys(updates).forEach(key => {
+      const value = (updates as any)[key];
+      if (value !== undefined) filteredUpdates[key as keyof Driver] = value;
+    });
     const [driver] = await db
       .update(drivers)
-      .set(updates)
+      .set(filteredUpdates)
       .where(eq(drivers.id, id))
       .returning();
     return driver || undefined;
@@ -179,6 +229,15 @@ export class DatabaseStorage implements IStorage {
     return trailer;
   }
 
+  async updateTrailer(id: number, updates: Partial<Trailer>): Promise<Trailer | undefined> {
+    const [trailer] = await db
+      .update(trailers)
+      .set(updates)
+      .where(eq(trailers.id, id))
+      .returning();
+    return trailer || undefined;
+  }
+
   async getShipment(id: number): Promise<Shipment | undefined> {
     const [shipment] = await db.select().from(shipments).where(eq(shipments.id, id));
     return shipment || undefined;
@@ -199,11 +258,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createShipment(insertShipment: InsertShipment): Promise<Shipment> {
-    const [shipment] = await db
+    const [shipmentRow] = await db
       .insert(shipments)
-      .values(insertShipment)
+      .values({
+        ...insertShipment,
+        createdAt: new Date(),
+        isActive: true,
+      })
       .returning();
-    return shipment;
+    return shipmentRow;
   }
 
   async updateShipment(id: number, updates: Partial<Shipment>): Promise<Shipment | undefined> {
@@ -235,6 +298,7 @@ export class DatabaseStorage implements IStorage {
         .insert(hoursOfService)
         .values({
           driverId,
+          date: new Date(),
           drivingHours: 0,
           onDutyHours: 0,
           remainingDriveTime: 11,
@@ -289,10 +353,28 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
+  async getExpenseReport(id: number): Promise<any> {
+    const [report] = await db.select().from(expenseReports).where(eq(expenseReports.id, id));
+    return report || undefined;
+  }
+
+  async updateExpenseReport(id: number, updates: Partial<any>): Promise<any> {
+    const [report] = await db.update(expenseReports).set(updates).where(eq(expenseReports.id, id)).returning();
+    return report || undefined;
+  }
+
+  async deleteExpenseReport(id: number): Promise<boolean> {
+    await db.delete(expenseReports).where(eq(expenseReports.id, id));
+    return true;
+  }
+
   async createInspectionReport(insertReport: InsertInspectionReport): Promise<InspectionReport> {
     const [report] = await db
       .insert(inspectionReports)
-      .values(insertReport)
+      .values({
+        ...insertReport,
+        createdAt: new Date(),
+      })
       .returning();
     return report;
   }
@@ -324,9 +406,21 @@ export class DatabaseStorage implements IStorage {
   async createDocument(insertDocument: InsertDocument): Promise<Document> {
     const [document] = await db
       .insert(documents)
-      .values(insertDocument)
+      .values({
+        ...insertDocument,
+        uploadedAt: new Date(),
+        isActive: true,
+      })
       .returning();
     return document;
+  }
+  async updateDocument(id: number, updates: Partial<Document>): Promise<Document | undefined> {
+    const [document] = await db
+      .update(documents)
+      .set(updates)
+      .where(eq(documents.id, id))
+      .returning();
+    return document || undefined;
   }
 
   async getActivityLogs(driverId: number, limit = 10): Promise<ActivityLog[]> {
@@ -339,9 +433,21 @@ export class DatabaseStorage implements IStorage {
   async createActivityLog(insertLog: InsertActivityLog): Promise<ActivityLog> {
     const [log] = await db
       .insert(activityLogs)
-      .values(insertLog)
+      .values({
+        ...insertLog,
+        timestamp: new Date(),
+      })
       .returning();
     return log;
+  }
+
+  async updateActivityLog(id: number, updates: Partial<ActivityLog>): Promise<ActivityLog | undefined> {
+    const [log] = await db
+      .update(activityLogs)
+      .set(updates)
+      .where(eq(activityLogs.id, id))
+      .returning();
+    return log || undefined;
   }
 
   // Document file operations
@@ -363,7 +469,10 @@ export class DatabaseStorage implements IStorage {
   async createDocumentFile(insertDocumentFile: InsertDocumentFile): Promise<DocumentFile> {
     const [documentFile] = await db
       .insert(documentFiles)
-      .values(insertDocumentFile)
+      .values({
+        ...insertDocumentFile,
+        uploadDate: new Date(),
+      })
       .returning();
     return documentFile;
   }
@@ -374,8 +483,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteDocumentFile(id: number): Promise<boolean> {
-    const result = await db.delete(documentFiles).where(eq(documentFiles.id, id));
-    return result.count > 0;
+    await db.delete(documentFiles).where(eq(documentFiles.id, id));
+    return true;
   }
 
   // Route operations
@@ -409,8 +518,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteRoute(id: number): Promise<boolean> {
-    const result = await db.delete(routes).where(eq(routes.id, id));
-    return result.count > 0;
+    await db.delete(routes).where(eq(routes.id, id));
+    return true;
   }
 
   // Authentication methods
@@ -435,15 +544,34 @@ export class DatabaseStorage implements IStorage {
     // Hash the password before storing
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
-
     const [user] = await db
       .insert(drivers)
       .values({
-        ...userData,
+        username: userData.username || "",
         password: hashedPassword,
+        name: userData.name || "",
+        lastName: (userData as any).lastName || "",
+        address: (userData as any).address ?? null,
+        contactNumber: (userData as any).contactNumber ?? null,
+        email: userData.email || "",
+        phone: userData.phone || "",
+        licenseNumber: userData.licenseNumber || null,
+        licensePhotoUrl: (userData as any).licensePhotoUrl ?? null,
+        federalLicenseExpiration: (userData as any).federalLicenseExpiration ?? null,
+        inePhotoUrl: (userData as any).inePhotoUrl ?? null,
+        medicalExamNumber: (userData as any).medicalExamNumber ?? null,
+        medicalExamExpiration: (userData as any).medicalExamExpiration ?? null,
+        medicalExamPhotoUrl: (userData as any).medicalExamPhotoUrl ?? null,
+        driverPhotoUrl: (userData as any).driverPhotoUrl ?? null,
+        role: userData.role || "driver",
+        status: (userData as any).status || "off_duty",
+        dutyStartTime: null,
+        currentVehicleId: (userData as any).currentVehicleId || null,
+        currentTrailerId: (userData as any).currentTrailerId || null,
+        isActive: true,
+        createdAt: new Date(),
       })
       .returning();
-
     const { password: _, ...userWithoutPassword } = user;
     return userWithoutPassword as Driver;
   }
@@ -493,38 +621,135 @@ export class MemStorage implements IStorage {
     const hashedAdminPassword = await bcrypt.hash("admin123", saltRounds);
 
     const driver: Driver = {
+  isActive: true,
       id: this.currentDriverId++,
       username: "skyler.droubay",
       password: hashedDriverPassword,
       name: "Skyler Droubay",
+      lastName: "",
+      address: null,
+      contactNumber: null,
       email: "skyler@davalifreight.com",
       phone: "+1-555-0123",
       licenseNumber: "CDL-123456789",
+      licensePhotoUrl: null,
+      federalLicenseExpiration: null,
+      inePhotoUrl: null,
+      medicalExamNumber: null,
+      medicalExamExpiration: null,
+      medicalExamPhotoUrl: null,
+      driverPhotoUrl: null,
       role: "driver",
       status: "off_duty",
       dutyStartTime: new Date(Date.now() - 21 * 60 * 1000),
       currentVehicleId: 1,
       currentTrailerId: null,
-      isActive: true,
       createdAt: new Date(),
     };
     this.drivers.set(driver.id, driver);
 
-    // Create sample admin user
-    const admin: Driver = {
-      id: this.currentDriverId++,
-      username: "admin",
-      password: hashedAdminPassword,
-      name: "Admin User",
-      email: "admin@davalifreight.com",
-      phone: "+1-555-0100",
+    // Seed de driver (asegura que existe para dashboard)
+    await db.insert(drivers).values({
+      username: "driver1",
+      password: await bcrypt.hash("driver123", 10),
+      name: "Driver One",
+      lastName: "",
+      address: null,
+      contactNumber: null,
+      email: "driver1@davalifreight.com",
+      phone: "555-111-1111",
       licenseNumber: null,
+      licensePhotoUrl: null,
+      federalLicenseExpiration: null,
+      inePhotoUrl: null,
+      medicalExamNumber: null,
+      medicalExamExpiration: null,
+      medicalExamPhotoUrl: null,
+      driverPhotoUrl: null,
+      role: "driver",
+      status: "off_duty",
+      currentVehicleId: null,
+      currentTrailerId: null,
+      createdAt: new Date(),
+    });
+
+    // Seed de driver con id 2
+    await db.insert(drivers).values({
+      username: "driver2",
+      password: await bcrypt.hash("driver2123", 10),
+      name: "Driver Two",
+      lastName: "",
+      address: null,
+      contactNumber: null,
+      email: "driver2@davalifreight.com",
+      phone: "555-222-2222",
+      licenseNumber: null,
+      licensePhotoUrl: null,
+      federalLicenseExpiration: null,
+      inePhotoUrl: null,
+      medicalExamNumber: null,
+      medicalExamExpiration: null,
+      medicalExamPhotoUrl: null,
+      driverPhotoUrl: null,
+      role: "driver",
+      status: "off_duty",
+      dutyStartTime: null,
+      currentVehicleId: null,
+      currentTrailerId: null,
+      createdAt: new Date(),
+    });
+
+    // Seed de admin (asegura que existe para dashboard)
+    await db.insert(drivers).values({
+      username: "admin",
+      password: await bcrypt.hash("admin123", 10),
+      name: "Admin User",
+      lastName: "",
+      address: null,
+      contactNumber: null,
+      email: "admin@davalifreight.com",
+      phone: "555-123-4567",
+      licenseNumber: null,
+      licensePhotoUrl: null,
+      federalLicenseExpiration: null,
+      inePhotoUrl: null,
+      medicalExamNumber: null,
+      medicalExamExpiration: null,
+      medicalExamPhotoUrl: null,
+      driverPhotoUrl: null,
       role: "admin",
       status: "off_duty",
       dutyStartTime: null,
       currentVehicleId: null,
       currentTrailerId: null,
-      isActive: true,
+      createdAt: new Date(),
+    });
+
+    // Create sample admin user
+    const admin: Driver = {
+  isActive: true,
+      id: this.currentDriverId++,
+      username: "admin",
+      password: hashedAdminPassword,
+      name: "Admin User",
+      lastName: "",
+      address: null,
+      contactNumber: null,
+      email: "admin@davalifreight.com",
+      phone: "+1-555-0100",
+      licenseNumber: null,
+      licensePhotoUrl: null,
+      federalLicenseExpiration: null,
+      inePhotoUrl: null,
+      medicalExamNumber: null,
+      medicalExamExpiration: null,
+      medicalExamPhotoUrl: null,
+      driverPhotoUrl: null,
+      role: "admin",
+      status: "off_duty",
+      dutyStartTime: null,
+      currentVehicleId: null,
+      currentTrailerId: null,
       createdAt: new Date(),
     };
     this.drivers.set(admin.id, admin);
@@ -542,7 +767,10 @@ export class MemStorage implements IStorage {
       mileage: 125000,
       status: "in_use",
       lastInspectionDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      isActive: true,
+      numeroEconomico: "25",
+      titlePhotoUrl: null,
+      type: "truck",
+      isActive: true
     };
     this.vehicles.set(vehicle.id, vehicle);
 
@@ -555,6 +783,7 @@ export class MemStorage implements IStorage {
       status: "available",
       lastInspectionDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
       isActive: true,
+      fileUrl: null
     };
     this.trailers.set(trailer.id, trailer);
 
@@ -577,6 +806,7 @@ export class MemStorage implements IStorage {
       createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
       deliveryDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
       isActive: true,
+      fileUrl: null
     };
     this.shipments.set(shipment.id, shipment);
 
@@ -606,6 +836,7 @@ export class MemStorage implements IStorage {
       inspectionData: null,
       createdAt: new Date(Date.now() - 2 * 60 * 1000),
       completedAt: new Date(Date.now() - 1 * 60 * 1000),
+      fileUrl: null
     };
     this.inspectionReports.set(inspection1.id, inspection1);
 
@@ -621,6 +852,7 @@ export class MemStorage implements IStorage {
       inspectionData: null,
       createdAt: new Date(Date.now() - 30 * 60 * 1000),
       completedAt: null,
+      fileUrl: null
     };
     this.inspectionReports.set(inspection2.id, inspection2);
 
@@ -635,6 +867,7 @@ export class MemStorage implements IStorage {
         filePath: `/documents/bol_${i + 1}.pdf`,
         uploadedAt: new Date(Date.now() - i * 60 * 60 * 1000),
         isActive: true,
+        fileUrl: null
       };
       this.documents.set(doc.id, doc);
     }
@@ -669,8 +902,67 @@ export class MemStorage implements IStorage {
         id: this.currentActivityId++,
         driverId: driver.id,
         ...activity,
+        fileUrl: null
       };
       this.activityLogs.set(log.id, log);
+    });
+
+    // Seed para driver 2
+    await db.insert(hoursOfService).values({
+  driverId: 2,
+  date: new Date(),
+  drivingHours: 5,
+  onDutyHours: 7,
+  remainingDriveTime: 6,
+  remainingDutyTime: 7,
+  isCompliant: true
+    });
+    await db.insert(inspectionReports).values({
+  driverId: 2,
+  vehicleId: 1,
+  trailerId: null,
+  type: "pre_trip",
+  status: "completed",
+  defectsFound: false,
+  notes: "Todo bien",
+  inspectionData: null,
+  createdAt: new Date(),
+  completedAt: new Date(),
+  fileUrl: null
+    });
+    await db.insert(documents).values({
+  name: "Licencia de conducir",
+  type: "license",
+  shipmentId: null,
+  driverId: 2,
+  filePath: "/documents/license_driver2.pdf",
+  fileUrl: null,
+  uploadedAt: new Date(),
+  isActive: true
+    });
+    await db.insert(activityLogs).values({
+  driverId: 2,
+  activity: "login",
+  description: "Inicio de sesión exitoso",
+  timestamp: new Date(),
+  relatedEntityType: null,
+  relatedEntityId: null,
+  fileUrl: null
+    });
+    await db.insert(shipments).values({
+  shippingId: "SHP-002",
+  origin: "Monterrey",
+  destination: "Guadalajara",
+  status: "in_transit",
+  assignedDriverId: 2,
+  assignedVehicleId: 1,
+  assignedTrailerId: null,
+  estimatedDistance: 900,
+  actualDistance: 0,
+  createdAt: new Date(),
+  deliveryDate: new Date(),
+  isActive: true,
+  fileUrl: null
     });
   }
 
@@ -689,9 +981,23 @@ export class MemStorage implements IStorage {
 
   async createDriver(insertDriver: InsertDriver): Promise<Driver> {
     const driver: Driver = {
-      ...insertDriver,
       id: this.currentDriverId++,
+      username: insertDriver.username || "",
+      password: insertDriver.password || "",
+      name: insertDriver.name || "",
+      lastName: (insertDriver as any).lastName || "",
+      address: (insertDriver as any).address ?? null,
+      contactNumber: (insertDriver as any).contactNumber ?? null,
+      email: insertDriver.email || "",
+      phone: insertDriver.phone || "",
       licenseNumber: insertDriver.licenseNumber || null,
+      licensePhotoUrl: (insertDriver as any).licensePhotoUrl ?? null,
+      federalLicenseExpiration: (insertDriver as any).federalLicenseExpiration ?? null,
+      inePhotoUrl: (insertDriver as any).inePhotoUrl ?? null,
+      medicalExamNumber: (insertDriver as any).medicalExamNumber ?? null,
+      medicalExamExpiration: (insertDriver as any).medicalExamExpiration ?? null,
+      medicalExamPhotoUrl: (insertDriver as any).medicalExamPhotoUrl ?? null,
+      driverPhotoUrl: (insertDriver as any).driverPhotoUrl ?? null,
       role: insertDriver.role || "driver",
       status: insertDriver.status || "off_duty",
       dutyStartTime: null,
@@ -707,8 +1013,21 @@ export class MemStorage implements IStorage {
   async updateDriver(id: number, updates: Partial<Driver>): Promise<Driver | undefined> {
     const driver = this.drivers.get(id);
     if (!driver) return undefined;
-
-    const updated = { ...driver, ...updates };
+    // Rellenar campos faltantes con valores actuales
+    const updated: Driver = {
+      ...driver,
+      ...updates,
+      lastName: updates.lastName ?? driver.lastName ?? "",
+      address: updates.address ?? driver.address ?? null,
+      contactNumber: updates.contactNumber ?? driver.contactNumber ?? null,
+      licensePhotoUrl: updates.licensePhotoUrl ?? driver.licensePhotoUrl ?? null,
+      federalLicenseExpiration: updates.federalLicenseExpiration ?? driver.federalLicenseExpiration ?? null,
+      inePhotoUrl: updates.inePhotoUrl ?? driver.inePhotoUrl ?? null,
+      medicalExamNumber: updates.medicalExamNumber ?? driver.medicalExamNumber ?? null,
+      medicalExamExpiration: updates.medicalExamExpiration ?? driver.medicalExamExpiration ?? null,
+      medicalExamPhotoUrl: updates.medicalExamPhotoUrl ?? driver.medicalExamPhotoUrl ?? null,
+      driverPhotoUrl: updates.driverPhotoUrl ?? driver.driverPhotoUrl ?? null,
+    };
     this.drivers.set(id, updated);
     return updated;
   }
@@ -723,26 +1042,39 @@ export class MemStorage implements IStorage {
   }
 
   async createVehicle(insertVehicle: InsertVehicle): Promise<Vehicle> {
+    const [row] = await db
+      .insert(vehicles)
+      .values(insertVehicle)
+      .returning();
+
     const vehicle: Vehicle = {
-      ...insertVehicle,
-      id: this.currentVehicleId++,
-      fuelLevel: 100,
-      mileage: 0,
-      status: "available",
-      lastInspectionDate: null,
+      id: row.id,
+      fuelLevel: row.fuelLevel,
+      mileage: row.mileage,
+      status: row.status,
+      lastInspectionDate: row.lastInspectionDate ?? null,
       isActive: true,
+      type: row.type,
+      vehicleNumber: row.vehicleNumber,
+      make: row.make,
+      model: row.model,
+      year: row.year,
+      vin: row.vin,
+      licensePlate: row.licensePlate,
+      numeroEconomico: row.numeroEconomico !== undefined ? row.numeroEconomico : null,
+      titlePhotoUrl: row.titlePhotoUrl !== undefined ? row.titlePhotoUrl : null
     };
     this.vehicles.set(vehicle.id, vehicle);
     return vehicle;
   }
 
   async updateVehicle(id: number, updates: Partial<Vehicle>): Promise<Vehicle | undefined> {
-    const vehicle = this.vehicles.get(id);
-    if (!vehicle) return undefined;
-
-    const updated = { ...vehicle, ...updates };
-    this.vehicles.set(id, updated);
-    return updated;
+    const [vehicle] = await db
+      .update(vehicles)
+      .set(updates)
+      .where(eq(vehicles.id, id))
+      .returning();
+    return vehicle || undefined;
   }
 
   // Trailer operations
@@ -761,9 +1093,18 @@ export class MemStorage implements IStorage {
       status: "available",
       lastInspectionDate: null,
       isActive: true,
+      fileUrl: null
     };
     this.trailers.set(trailer.id, trailer);
     return trailer;
+  }
+
+  async updateTrailer(id: number, updates: Partial<Trailer>): Promise<Trailer | undefined> {
+    const trailer = this.trailers.get(id);
+    if (!trailer) return undefined;
+    const updated = { ...trailer, ...updates };
+    this.trailers.set(id, updated);
+    return updated;
   }
 
   // Shipment operations
@@ -796,18 +1137,19 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
       deliveryDate: null,
       isActive: true,
+      fileUrl: null
     };
     this.shipments.set(shipment.id, shipment);
     return shipment;
   }
 
   async updateShipment(id: number, updates: Partial<Shipment>): Promise<Shipment | undefined> {
-    const shipment = this.shipments.get(id);
-    if (!shipment) return undefined;
-
-    const updated = { ...shipment, ...updates };
-    this.shipments.set(id, updated);
-    return updated;
+    const [shipment] = await db
+      .update(shipments)
+      .set(updates)
+      .where(eq(shipments.id, id))
+      .returning();
+    return shipment || undefined;
   }
 
   // Hours of Service operations
@@ -849,6 +1191,7 @@ export class MemStorage implements IStorage {
       status: "pending",
       createdAt: new Date(),
       completedAt: null,
+      fileUrl: null
     };
     this.inspectionReports.set(report.id, report);
     return report;
@@ -872,17 +1215,24 @@ export class MemStorage implements IStorage {
   }
 
   async createDocument(insertDocument: InsertDocument): Promise<Document> {
-    const document: Document = {
-      ...insertDocument,
-      id: this.currentDocumentId++,
-      shipmentId: insertDocument.shipmentId || null,
-      driverId: insertDocument.driverId || null,
-      filePath: insertDocument.filePath || null,
-      uploadedAt: new Date(),
-      isActive: true,
-    };
-    this.documents.set(document.id, document);
+    const [document] = await db
+      .insert(documents)
+      .values({
+        ...insertDocument,
+        uploadedAt: new Date(),
+        isActive: true,
+      })
+      .returning();
     return document;
+  }
+
+  async updateDocument(id: number, updates: Partial<Document>): Promise<Document | undefined> {
+    const [document] = await db
+      .update(documents)
+      .set(updates)
+      .where(eq(documents.id, id))
+      .returning();
+    return document || undefined;
   }
 
   // Activity log operations
@@ -900,9 +1250,18 @@ export class MemStorage implements IStorage {
       relatedEntityType: insertLog.relatedEntityType || null,
       relatedEntityId: insertLog.relatedEntityId || null,
       timestamp: new Date(),
+      fileUrl: null
     };
     this.activityLogs.set(log.id, log);
     return log;
+  }
+
+  async updateActivityLog(id: number, updates: Partial<ActivityLog>): Promise<ActivityLog | undefined> {
+    const log = this.activityLogs.get(id);
+    if (!log) return undefined;
+    const updated = { ...log, ...updates };
+    this.activityLogs.set(id, updated);
+    return updated;
   }
 
   async getDocumentFiles(driverId?: number, fileType?: string): Promise<DocumentFile[]> {
@@ -964,6 +1323,7 @@ export class MemStorage implements IStorage {
       status: insertRoute.status || "planned",
       createdAt: new Date(),
       updatedAt: new Date(),
+      fileUrl: null
     };
     this.routes.set(route.id, route);
     return route;
@@ -984,6 +1344,31 @@ export class MemStorage implements IStorage {
 
   async deleteRoute(id: number): Promise<boolean> {
     return this.routes.delete(id);
+  }
+
+  // Refacciones operations
+  async getRefaccionesByVehicle(vehicleId: number): Promise<Refaccion[]> {
+    // For MemStorage, we don't have refacciones table
+    // This would need to be implemented if needed
+    return [];
+  }
+
+  async createRefaccion(refaccion: InsertRefaccion): Promise<Refaccion> {
+    // For MemStorage, we don't have refacciones table
+    // This would need to be implemented if needed
+    throw new Error('Refacciones not implemented in MemStorage');
+  }
+
+  async updateRefaccion(id: number, updates: Partial<Refaccion>): Promise<Refaccion | undefined> {
+    // For MemStorage, we don't have refacciones table
+    // This would need to be implemented if needed
+    return undefined;
+  }
+
+  async deleteRefaccion(id: number): Promise<boolean> {
+    // For MemStorage, we don't have refacciones table
+    // This would need to be implemented if needed
+    return false;
   }
 
   // Expense Report operations
@@ -1021,6 +1406,24 @@ export class MemStorage implements IStorage {
     }));
   }
 
+  async getExpenseReport(id: number): Promise<any> {
+    // For MemStorage, we don't have a separate expenseReports table
+    // This would need to be implemented if needed
+    return undefined;
+  }
+
+  async updateExpenseReport(id: number, updates: Partial<any>): Promise<any> {
+    // For MemStorage, we don't have a separate expenseReports table
+    // This would need to be implemented if needed
+    return undefined;
+  }
+
+  async deleteExpenseReport(id: number): Promise<boolean> {
+    // For MemStorage, we don't have a separate expenseReports table
+    // This would need to be implemented if needed
+    return false;
+  }
+
   // Authentication methods
   async authenticateUser(username: string, password: string): Promise<Driver | null> {
     const user = await this.getDriverByUsername(username);
@@ -1045,8 +1448,28 @@ export class MemStorage implements IStorage {
     const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
 
     const driver = await this.createDriver({
-      ...userData,
+      username: userData.username || "",
       password: hashedPassword,
+      name: userData.name || "",
+      lastName: (userData as any).lastName || "",
+      address: (userData as any).address ?? null,
+      contactNumber: (userData as any).contactNumber ?? null,
+      email: userData.email || "",
+      phone: userData.phone || "",
+      licenseNumber: userData.licenseNumber || null,
+      licensePhotoUrl: (userData as any).licensePhotoUrl ?? null,
+      federalLicenseExpiration: (userData as any).federalLicenseExpiration ?? null,
+      inePhotoUrl: (userData as any).inePhotoUrl ?? null,
+      medicalExamNumber: (userData as any).medicalExamNumber ?? null,
+      medicalExamExpiration: (userData as any).medicalExamExpiration ?? null,
+      medicalExamPhotoUrl: (userData as any).medicalExamPhotoUrl ?? null,
+      driverPhotoUrl: (userData as any).driverPhotoUrl ?? null,
+      role: userData.role || "driver",
+  status: (userData as any).status || "off_duty",
+      currentVehicleId: (userData as any).currentVehicleId || null,
+      currentTrailerId: (userData as any).currentTrailerId || null,
+      isActive: true,
+      createdAt: new Date(),
     });
 
     const { password: _, ...userWithoutPassword } = driver;
@@ -1063,20 +1486,5 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Create a simple memory storage that initializes immediately
-const memStorage = new MemStorage();
-
-// Initialize the storage with seed data
-let isInitialized = false;
-async function initializeStorage() {
-  if (!isInitialized) {
-    await memStorage.seedData();
-    isInitialized = true;
-  }
-}
-
-// Initialize immediately
-initializeStorage().catch(console.error);
-
-// Export storage instance
-export const storage = memStorage;
+// Export storage instance (persistente en base de datos)
+export const storage = new DatabaseStorage();
